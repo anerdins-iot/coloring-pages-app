@@ -43,9 +43,9 @@ export const generateColoringPage = tool({
         "Kort engelsk beskrivning av ändringen. Krävs tillsammans med referenceImageId.",
       ),
   }),
-  // Convert tool output to model-friendly format WITHOUT image data.
-  // Only send small metadata to the model. The full imageSrc data-URL
-  // is kept in the raw output for the client UI.
+  // Send the generated image to the chat model so it can see and describe it.
+  // The image-data part is included LIVE (in the multi-step streamText loop),
+  // but stripped from replayed history by stripImagesFromModelMessages in route.ts.
   toModelOutput({
     output,
   }: {
@@ -59,15 +59,40 @@ export const generateColoringPage = tool({
       estimatedCost: number;
     };
   }) {
+    // During replay, imageSrc may be stripped — return text-only in that case
+    if (!output.imageSrc) {
+      return {
+        type: "text" as const,
+        value: JSON.stringify({
+          imageId: output.imageId,
+          imageAlt: output.imageAlt,
+        }),
+      };
+    }
+    const base64 = output.imageSrc.includes(",")
+      ? output.imageSrc.split(",")[1]
+      : output.imageSrc;
+    const mediaType = output.imageSrc.startsWith("data:")
+      ? output.imageSrc.slice(5, output.imageSrc.indexOf(";"))
+      : "image/png";
     return {
-      type: "text" as const,
-      value: JSON.stringify({
-        imageId: output.imageId,
-        imageAlt: output.imageAlt,
-        modelUsed: output.modelUsed,
-        estimatedCost: output.estimatedCost,
-        status: "image_generated",
-      }),
+      type: "content" as const,
+      value: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({
+            imageId: output.imageId,
+            imageAlt: output.imageAlt,
+            modelUsed: output.modelUsed,
+            estimatedCost: output.estimatedCost,
+          }),
+        },
+        {
+          type: "image-data" as const,
+          data: base64,
+          mediaType,
+        },
+      ],
     };
   },
   execute: async ({

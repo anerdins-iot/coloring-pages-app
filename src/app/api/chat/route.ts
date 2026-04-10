@@ -26,19 +26,39 @@ const chatModel = google("gemini-3.1-flash-lite-preview");
 function stripImagesFromModelMessages(
   messages: ModelMessage[],
 ): ModelMessage[] {
-  // Deep JSON scan: remove any imageSrc data-URLs and image-data parts
-  const json = JSON.stringify(messages, (key, value) => {
-    // Remove imageSrc fields that contain data URLs
-    if (key === "imageSrc" && typeof value === "string" && value.length > 500) {
-      return undefined;
+  // Two-pass approach:
+  // 1. JSON stringify/parse to deep-clone
+  // 2. Walk tool messages and filter out image-data/media parts entirely
+  const cloned = JSON.parse(JSON.stringify(messages)) as ModelMessage[];
+
+  for (const msg of cloned) {
+    if (msg.role !== "tool") continue;
+    for (const part of msg.content) {
+      if (part.type !== "tool-result") continue;
+      const output = part.output as {
+        type?: string;
+        value?: unknown[];
+      } | null;
+      if (!output || output.type !== "content" || !Array.isArray(output.value))
+        continue;
+      // Filter out image-data, media, file-data parts (keep only text parts)
+      output.value = output.value.filter(
+        (v: unknown) => {
+          const item = v as { type?: string; data?: string };
+          if (
+            item.type === "image-data" ||
+            item.type === "media" ||
+            item.type === "file-data"
+          ) {
+            return false;
+          }
+          return true;
+        },
+      );
     }
-    // Remove image-data/media/file-data parts from content arrays
-    if (key === "data" && typeof value === "string" && value.length > 10000) {
-      return undefined;
-    }
-    return value;
-  });
-  return JSON.parse(json) as ModelMessage[];
+  }
+
+  return cloned;
 }
 
 export async function POST(req: Request) {
@@ -120,7 +140,7 @@ export async function POST(req: Request) {
       onStepFinish: (step) => {
         const u = step.usage;
         console.info(
-          `[api/chat] step(${step.stepType}): ${u.inputTokens ?? 0}in + ${u.outputTokens ?? 0}out = ${u.totalTokens ?? 0}total | finish: ${step.finishReason}`,
+          `[api/chat] step: ${u.inputTokens ?? 0}in + ${u.outputTokens ?? 0}out = ${u.totalTokens ?? 0}total | finish: ${step.finishReason}`,
         );
       },
       onFinish: async (event) => {
