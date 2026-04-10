@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -161,13 +163,9 @@
 
 @layer utilities {
   .bg-play-landscape {
-    background:
-      radial-gradient(ellipse 100% 70% at 50% -15%, var(--play-sun) 0%, transparent 50%),
-      linear-gradient(
-        180deg,
-        var(--play-sky-top) 0%,
-        var(--play-sky-mid) 42%,
-        var(--play-hill) 100%
-      );
+    background-image: url('/magical-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
 }

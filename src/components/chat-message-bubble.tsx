@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import type { ColoringChatMessage } from "@/types/coloring-chat";
 import { ColoringImageLightbox } from "@/components/coloring-image-lightbox";
@@ -24,17 +26,21 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
       >
         <div
           className={cn(
-            "max-w-[min(100%,34rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ring-1 ring-black/5 dark:ring-white/10",
+            "max-w-[min(100%,34rem)] rounded-2xl px-5 py-4 text-sm leading-relaxed shadow-sm ring-1 ring-black/5 dark:ring-white/10",
             isUser
               ? "rounded-br-md bg-primary text-primary-foreground"
               : "rounded-bl-md bg-card text-card-foreground"
           )}
         >
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <div className={cn("prose prose-sm max-w-none break-words", isUser ? "prose-invert" : "dark:prose-invert")}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
           {message.imageSrc ? (
             <button
               type="button"
-              className="group relative mt-3 w-full max-w-xs cursor-zoom-in overflow-hidden rounded-xl border border-border/80 bg-background/60 text-left transition hover:ring-2 hover:ring-ring/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group relative mt-4 w-full max-w-xs cursor-zoom-in overflow-hidden rounded-xl border-4 border-white/20 bg-background/60 shadow-lg text-left transition-all hover:scale-[1.02] hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50"
               onClick={() => setLightboxOpen(true)}
               aria-label="Öppna större bild av målarbilden"
             >
@@ -44,7 +50,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
                   <img
                     src={message.imageSrc}
                     alt={message.imageAlt ?? "Genererad målarbild"}
-                    className="h-full w-full object-cover transition group-hover:brightness-95"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     width={240}
                     height={240}
                   />
@@ -53,12 +59,12 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
                     src={message.imageSrc}
                     alt={message.imageAlt ?? "Genererad målarbild"}
                     fill
-                    className="object-cover transition group-hover:brightness-95"
+                    className="object-cover transition duration-500 group-hover:scale-105"
                     sizes="240px"
                   />
                 )}
               </span>
-              <span className="mt-1 block px-1 pb-1 text-xs text-muted-foreground group-hover:text-foreground">
+              <span className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 Tryck för stor bild
               </span>
             </button>
