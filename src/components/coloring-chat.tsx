@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "@/components/chat-message-bubble";
+import { ModelSelector } from "@/components/model-selector";
 import type { ChatStatus } from "ai";
 import type { ColoringChatMessage } from "@/types/coloring-chat";
+import type { ImageModelConfig, ImageModelId } from "@/lib/image-models";
 
 export type ColoringChatProps = {
   initialMessages?: ColoringChatMessage[];
@@ -21,6 +23,9 @@ export type ColoringChatProps = {
   chatStatus?: ChatStatus;
   chatError?: Error;
   onStopGeneration?: () => void | Promise<void>;
+  imageModel?: ImageModelId;
+  onImageModelChange?: (id: ImageModelId) => void;
+  imageModels?: ImageModelConfig[];
 };
 
 const demoFallbackMessages: ColoringChatMessage[] = [
@@ -62,7 +67,8 @@ function blobToBase64(blob: Blob): Promise<string> {
       }
       resolve(res.slice(comma + 1));
     };
-    r.onerror = () => reject(r.error ?? new Error("Filavläsning misslyckades"));
+    r.onerror = () =>
+      reject(r.error ?? new Error("Filavläsning misslyckades"));
     r.readAsDataURL(blob);
   });
 }
@@ -78,6 +84,9 @@ export function ColoringChat({
   chatStatus = "ready",
   chatError,
   onStopGeneration,
+  imageModel,
+  onImageModelChange,
+  imageModels,
 }: ColoringChatProps) {
   const formId = useId();
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -103,7 +112,11 @@ export function ColoringChat({
     imageAlt: string;
   } | null>(null);
 
-  function handleRequestEdit(imageId: string, imageSrc: string, imageAlt: string) {
+  function handleRequestEdit(
+    imageId: string,
+    imageSrc: string,
+    imageAlt: string,
+  ) {
     setEditingImage({ imageId, imageSrc, imageAlt });
     setTimeout(() => inputRef.current?.focus(), 0);
   }
@@ -206,22 +219,47 @@ export function ColoringChat({
     }
   }
 
+  // Calculate total session cost
+  const totalCost = messages.reduce(
+    (sum, m) => sum + (m.estimatedCost ?? 0),
+    0,
+  );
+
   const streaming = chatStatus === "streaming" || chatStatus === "submitted";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 pb-8 sm:p-6">
-      <header className="space-y-1 text-center sm:text-left">
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Måla med magi
-        </h1>
-        <p className="text-sm text-muted-foreground sm:text-base">
-          Prata eller skriv, få trygga förslag och målarbilder du kan spara hemma.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Måla med magi
+          </h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Prata eller skriv, få trygga förslag och målarbilder du kan spara
+            hemma.
+          </p>
+        </div>
+        {imageModel && imageModels && onImageModelChange ? (
+          <div className="flex flex-col items-end gap-1 shrink-0 pt-1">
+            <ModelSelector
+              models={imageModels}
+              value={imageModel}
+              onChange={onImageModelChange}
+            />
+            {totalCost > 0 ? (
+              <span className="text-[10px] font-mono text-muted-foreground/60">
+                Session: ${totalCost.toFixed(3)}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       <Card className="border-border/80 bg-card/95 shadow-xl backdrop-blur-md supports-backdrop-filter:bg-card/90 ring-1 ring-white/20 dark:ring-white/10">
         <CardHeader className="gap-2 pb-2">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Magisk Chatt</CardTitle>
+          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+            Magisk Chatt
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 pt-0">
           {chatError ? (
@@ -237,7 +275,9 @@ export function ColoringChat({
                 <ChatMessageBubble
                   key={m.id}
                   message={m}
-                  onRequestEdit={m.imageId ? handleRequestEdit : undefined}
+                  onRequestEdit={
+                    m.imageId ? handleRequestEdit : undefined
+                  }
                 />
               ))}
               <div ref={scrollAnchorRef} aria-hidden />
@@ -288,7 +328,9 @@ export function ColoringChat({
                   }
                   aria-pressed={recording}
                   aria-label={
-                    recording ? "Stoppa inspelning" : "Spela in med mikrofon"
+                    recording
+                      ? "Stoppa inspelning"
+                      : "Spela in med mikrofon"
                   }
                 >
                   {transcribing ? (
@@ -326,10 +368,22 @@ export function ColoringChat({
                 size="icon"
                 className="h-11 w-11 shrink-0 rounded-xl"
                 onClick={onVoiceToggle}
-                aria-label={isVoiceEnabled ? "Stäng av uppläsning" : "Slå på uppläsning"}
-                title={isVoiceEnabled ? "Stäng av uppläsning" : "Slå på uppläsning"}
+                aria-label={
+                  isVoiceEnabled
+                    ? "Stäng av uppläsning"
+                    : "Slå på uppläsning"
+                }
+                title={
+                  isVoiceEnabled
+                    ? "Stäng av uppläsning"
+                    : "Slå på uppläsning"
+                }
               >
-                {isVoiceEnabled ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
+                {isVoiceEnabled ? (
+                  <Volume2 className="size-5" />
+                ) : (
+                  <VolumeX className="size-5" />
+                )}
               </Button>
               {streaming && onStopGeneration ? (
                 <Button
@@ -353,7 +407,8 @@ export function ColoringChat({
             </div>
           </form>
           <p className="text-xs text-muted-foreground">
-            Allt här är gjort för barn — vuxna kan alltid hjälpa till vid sidan av.
+            Allt här är gjort för barn — vuxna kan alltid hjälpa till vid
+            sidan av.
           </p>
         </CardContent>
       </Card>

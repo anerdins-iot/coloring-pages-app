@@ -9,7 +9,11 @@ import {
   type UIMessage,
 } from "ai";
 import { COLORING_SYSTEM_PROMPT } from "@/lib/coloring-system-prompt";
-import { generateColoringPage, coloringToolSet } from "@/lib/coloring-tools";
+import {
+  generateColoringPage,
+  coloringToolSet,
+  setImageModel,
+} from "@/lib/coloring-tools";
 
 export const dynamic = "force-dynamic";
 
@@ -76,9 +80,9 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { messages: unknown };
+  let body: { messages: unknown; imageModel?: string };
   try {
-    body = (await req.json()) as { messages: unknown };
+    body = (await req.json()) as { messages: unknown; imageModel?: string };
   } catch {
     return new Response(JSON.stringify({ error: "Ogiltig JSON." }), {
       status: 400,
@@ -86,7 +90,10 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages } = body;
+  const { messages, imageModel } = body;
+  if (imageModel) {
+    setImageModel(imageModel);
+  }
   if (!Array.isArray(messages)) {
     return new Response(JSON.stringify({ error: "Meddelanden saknas." }), {
       status: 400,

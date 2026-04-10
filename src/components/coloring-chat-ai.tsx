@@ -6,6 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ColoringChat } from "@/components/coloring-chat";
 import { mapUiMessagesToColoringMessages } from "@/lib/map-ui-messages";
 import { segmentCompleteSentences } from "@/lib/sentence-segmentation";
+import {
+  IMAGE_MODELS,
+  DEFAULT_IMAGE_MODEL,
+  type ImageModelId,
+} from "@/lib/image-models";
 
 const welcomeMessages: UIMessage[] = [
   {
@@ -26,9 +31,15 @@ function sentenceSpeechKey(s: string): string {
 
 export function ColoringChatAi() {
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [imageModel, setImageModel] = useState<ImageModelId>(DEFAULT_IMAGE_MODEL);
+
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/chat" }),
-    [],
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: { imageModel },
+      }),
+    [imageModel],
   );
 
   const { messages, setMessages, sendMessage, status, error, stop } = useChat({
@@ -105,7 +116,12 @@ export function ColoringChatAi() {
 
   const handleSendText = useCallback(
     async (text: string) => {
-      setMessages(messages.map(m => ({ ...m, parts: m.parts.filter(p => p.type === "text") })));
+      setMessages(
+        messages.map((m) => ({
+          ...m,
+          parts: m.parts.filter((p) => p.type === "text"),
+        })),
+      );
       await sendMessage({ text });
     },
     [messages, sendMessage, setMessages],
@@ -124,6 +140,9 @@ export function ColoringChatAi() {
       disableSend={busy}
       onStopGeneration={stop}
       voiceInputEnabled
+      imageModel={imageModel}
+      onImageModelChange={setImageModel}
+      imageModels={IMAGE_MODELS}
     />
   );
 }

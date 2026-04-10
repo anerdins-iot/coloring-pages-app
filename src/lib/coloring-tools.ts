@@ -2,6 +2,21 @@ import { google } from "@ai-sdk/google";
 import { generateText, tool } from "ai";
 import { z } from "zod";
 import { saveImage, getImage } from "@/lib/image-store";
+import {
+  DEFAULT_IMAGE_MODEL,
+  isValidImageModel,
+  getModelConfig,
+  type ImageModelId,
+} from "@/lib/image-models";
+
+// Server-side request-scoped model selection
+let currentImageModel: ImageModelId = DEFAULT_IMAGE_MODEL;
+
+export function setImageModel(modelId: string) {
+  if (isValidImageModel(modelId)) {
+    currentImageModel = modelId;
+  }
+}
 
 export const generateColoringPage = tool({
   description:
@@ -29,7 +44,19 @@ export const generateColoringPage = tool({
       ),
   }),
   // Let the chat model SEE the generated image so it can comment on it
-  toModelOutput({ output }: { toolCallId: string; input: unknown; output: { imageId: string; imageSrc: string; imageAlt: string } }) {
+  toModelOutput({
+    output,
+  }: {
+    toolCallId: string;
+    input: unknown;
+    output: {
+      imageId: string;
+      imageSrc: string;
+      imageAlt: string;
+      modelUsed: string;
+      estimatedCost: number;
+    };
+  }) {
     const base64 = output.imageSrc.includes(",")
       ? output.imageSrc.split(",")[1]
       : output.imageSrc;
@@ -44,6 +71,8 @@ export const generateColoringPage = tool({
           text: JSON.stringify({
             imageId: output.imageId,
             imageAlt: output.imageAlt,
+            modelUsed: output.modelUsed,
+            estimatedCost: output.estimatedCost,
           }),
         },
         {
@@ -66,7 +95,9 @@ export const generateColoringPage = tool({
       "no text, no letters, no color, no photorealism: " +
       englishImagePrompt;
 
-    const model = google("gemini-3.1-flash-image-preview");
+    const modelId = currentImageModel;
+    const model = google(modelId);
+    const modelConfig = getModelConfig(modelId);
     const providerOptions = {
       google: {
         responseModalities: ["TEXT", "IMAGE"],
@@ -125,7 +156,6 @@ export const generateColoringPage = tool({
         throw new Error("Modellen returnerade en bild utan data.");
       }
 
-      // Spara i server-side registret
       const imageId = saveImage(
         base64,
         imageFile.mediaType,
@@ -137,6 +167,8 @@ export const generateColoringPage = tool({
         imageId,
         imageSrc: `data:${imageFile.mediaType};base64,${base64}`,
         imageAlt: swedishAltText,
+        modelUsed: modelId,
+        estimatedCost: modelConfig?.costPerImage ?? 0,
       };
     } catch (err) {
       console.error("[generateColoringPage]", err);

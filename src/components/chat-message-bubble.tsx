@@ -71,22 +71,32 @@ export function ChatMessageBubble({ message, onRequestEdit }: ChatMessageBubbleP
                   Tryck för stor bild
                 </span>
               </button>
-              {onRequestEdit ? (
-                <button
-                  type="button"
-                  className="flex w-full max-w-xs items-center gap-2 rounded-2xl border-2 border-primary/20 bg-white/80 px-4 py-2 text-sm font-medium shadow-md transition-all hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                  onClick={() =>
-                    onRequestEdit(
-                      message.imageId ?? "",
-                      message.imageSrc!,
-                      message.imageAlt ?? "Genererad målarbild",
-                    )
-                  }
-                >
-                  <Pencil className="size-4 shrink-0 text-primary" />
-                  Ändra bilden
-                </button>
-              ) : null}
+              <div className="flex items-center gap-2 max-w-xs">
+                {onRequestEdit ? (
+                  <button
+                    type="button"
+                    className="flex flex-1 items-center gap-2 rounded-2xl border-2 border-primary/20 bg-white/80 px-4 py-2 text-sm font-medium shadow-md transition-all hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    onClick={() =>
+                      onRequestEdit(
+                        message.imageId ?? "",
+                        message.imageSrc!,
+                        message.imageAlt ?? "Genererad målarbild",
+                      )
+                    }
+                  >
+                    <Pencil className="size-4 shrink-0 text-primary" />
+                    Ändra bilden
+                  </button>
+                ) : null}
+                {message.estimatedCost != null && message.estimatedCost > 0 ? (
+                  <span
+                    className="shrink-0 rounded-lg bg-muted/80 px-2 py-1 text-[10px] font-mono text-muted-foreground"
+                    title={`Modell: ${message.modelUsed ?? "okänd"}`}
+                  >
+                    ${message.estimatedCost.toFixed(3)}
+                  </span>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>
