@@ -6,9 +6,9 @@ import {
 } from "ai";
 
 /**
- * Chat transport that strips base64 image data from tool outputs
- * before sending to the server. Prevents exceeding token limits
- * while keeping images visible in the client-side chat UI.
+ * Chat transport that strips base64 image data from OLDER messages
+ * before sending to the server. The LAST user message keeps its files
+ * intact so the model can see newly uploaded images.
  */
 export function createStrippedTransport(options: {
   api: string;
@@ -17,15 +17,28 @@ export function createStrippedTransport(options: {
   const inner = new DefaultChatTransport(options);
 
   function stripMessages(messages: UIMessage[]): UIMessage[] {
-    return messages.map((m) => ({
+    // Find the last user message index — keep its files intact
+    let lastUserIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
+    }
+
+    return messages.map((m, idx) => ({
       ...m,
       parts: m.parts.map((p) => {
         if (typeof p !== "object" || !("type" in p)) return p;
         const pType = (p as { type: string }).type;
 
-        // Strip large file parts (uploaded images as data-URLs)
-        if (pType === "file") {
-          const filePart = p as { type: string; url?: string; mediaType?: string };
+        // Keep file parts in the last user message (newly uploaded image)
+        if (pType === "file" && idx !== lastUserIdx) {
+          const filePart = p as {
+            type: string;
+            url?: string;
+            mediaType?: string;
+          };
           if (filePart.url && filePart.url.length > 1000) {
             return { ...p, url: "[stripped]" };
           }

@@ -8,6 +8,8 @@ export type ColoringChatMessage = {
   imageId?: string;
   imageSrc?: string;
   imageAlt?: string;
+  /** Uppladdad bild (user file attachment) */
+  uploadedImageUrl?: string;
   /** Vilken modell som genererade bilden */
   modelUsed?: string;
   /** Uppskattad kostnad i USD */

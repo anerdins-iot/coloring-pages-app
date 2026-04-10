@@ -31,10 +31,20 @@ function stripImagesFromModelMessages(
   // 2. Walk tool messages and filter out image-data/media parts entirely
   const cloned = JSON.parse(JSON.stringify(messages)) as ModelMessage[];
 
-  for (const msg of cloned) {
+  // Find the last user message index — keep its images intact (newly uploaded)
+  let lastUserIdx = -1;
+  for (let i = cloned.length - 1; i >= 0; i--) {
+    if (cloned[i].role === "user") {
+      lastUserIdx = i;
+      break;
+    }
+  }
+
+  for (let i = 0; i < cloned.length; i++) {
+    const msg = cloned[i];
     if (msg.role === "user") {
-      // Strip large image parts from user messages (uploaded images from history)
-      if (Array.isArray(msg.content)) {
+      // Only strip images from OLDER user messages, keep the latest
+      if (i !== lastUserIdx && Array.isArray(msg.content)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (msg as any).content = (msg.content as Array<unknown>).filter((part: unknown) => {
           const p = part as { type?: string; image?: unknown };

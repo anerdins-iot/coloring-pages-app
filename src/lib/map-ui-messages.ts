@@ -56,10 +56,26 @@ export function mapUiMessagesToColoringMessages(
 
   for (const m of messages) {
     if (m.role === "user") {
+      // Extract uploaded image from file parts
+      let uploadedImageUrl: string | undefined;
+      for (const p of m.parts) {
+        if (
+          p.type === "file" &&
+          "mediaType" in p &&
+          typeof p.mediaType === "string" &&
+          p.mediaType.startsWith("image/") &&
+          "url" in p &&
+          typeof p.url === "string"
+        ) {
+          uploadedImageUrl = p.url;
+          break;
+        }
+      }
       out.push({
         id: m.id,
         role: "user",
         content: cleanText(partsText(m.parts)),
+        uploadedImageUrl,
       });
       continue;
     }

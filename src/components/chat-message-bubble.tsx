@@ -50,6 +50,16 @@ export function ChatMessageBubble({
               : "max-w-[90%] rounded-bl-md bg-white/70 px-5 py-4 text-foreground dark:bg-white/10",
           )}
         >
+          {message.uploadedImageUrl ? (
+            <div className="mb-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={message.uploadedImageUrl}
+                alt="Uppladdad bild"
+                className="max-w-[200px] rounded-lg object-cover"
+              />
+            </div>
+          ) : null}
           {message.content ? (
             <div
               className={cn(
