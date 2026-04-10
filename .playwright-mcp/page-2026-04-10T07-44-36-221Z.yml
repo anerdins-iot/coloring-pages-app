@@ -1,0 +1,121 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - heading "Måla med magi" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Prata eller skriv, få trygga förslag och målarbilder du kan spara hemma.
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Chatt
+        - generic [ref=e10]:
+          - paragraph [ref=e11]: Röstläge
+          - paragraph [ref=e12]: Välj hur assistenten låter när du pratar med den. Du kan byta när du vill.
+          - group "Röstläge" [ref=e13]:
+            - button "Blå röst Lugn och tydlig — bra när man vill ha långsamma, tydliga ord. Uppläsning påslagen." [pressed] [ref=e14]:
+              - generic [ref=e15]: Blå röst
+              - generic [ref=e16]: Lugn och tydlig — bra när man vill ha långsamma, tydliga ord. Uppläsning påslagen.
+            - button "Grön röst Glad och peppig — lite mer energi och lek i tonen. Uppläsning påslagen." [ref=e17]:
+              - generic [ref=e18]: Grön röst
+              - generic [ref=e19]: Glad och peppig — lite mer energi och lek i tonen. Uppläsning påslagen.
+            - button "Orange röst Sprallig och rolig — samma vänliga svar i chatten, men utan uppläsning (du läser själv)." [ref=e20]:
+              - generic [ref=e21]: Orange röst
+              - generic [ref=e22]: Sprallig och rolig — samma vänliga svar i chatten, men utan uppläsning (du läser själv).
+      - generic [ref=e23]:
+        - paragraph [ref=e30]: Hej! Skriv eller använd mikrofonen och säg vad du vill måla. Jag svarar på svenska och hjälper bara med trygga målarbilder.
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - button "Spela in med mikrofon" [ref=e33]:
+              - img
+            - generic [ref=e34]:
+              - generic [ref=e35]: Skriv ett meddelande
+              - textbox "Skriv ett meddelande" [ref=e36]:
+                - /placeholder: Skriv vad du vill måla…
+                - text: Jag vill måla en katt
+          - button "Skicka" [ref=e58]
+        - paragraph [ref=e37]: Allt här är gjort för barn — vuxna kan alltid hjälpa till vid sidan av.
+  - generic [active]:
+    - generic [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - navigation [ref=e64]:
+            - button "previous" [disabled] [ref=e65]:
+              - img "previous" [ref=e66]
+            - generic [ref=e68]:
+              - generic [ref=e69]: 1/
+              - text: "2"
+            - button "next" [ref=e70] [cursor=pointer]:
+              - img "next" [ref=e71]
+          - img
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - img [ref=e75]
+            - generic "Latest available version is detected (16.2.3)." [ref=e77]: Next.js 16.2.3
+            - generic [ref=e78]: Turbopack
+          - img
+      - generic [ref=e79]:
+        - dialog "Console Error" [ref=e80]:
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - generic [ref=e87]: Console Error
+                - generic [ref=e88]:
+                  - button "Copy Error Info" [ref=e89] [cursor=pointer]:
+                    - img [ref=e90]
+                  - button "No related documentation found" [disabled] [ref=e92]:
+                    - img [ref=e93]
+                  - button "Attach Node.js inspector" [ref=e95] [cursor=pointer]:
+                    - img [ref=e96]
+              - generic [ref=e105]: "[TTS] 503 \"{\\\"error\\\":\\\"TTS är inte konfigurerad på servern.\\\"}\""
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - paragraph [ref=e109]:
+                  - img [ref=e111]
+                  - generic [ref=e114]: src/components/coloring-chat-ai.tsx (83:21) @ ColoringChatAi.useEffect
+                  - button "Open in editor" [ref=e115] [cursor=pointer]:
+                    - img [ref=e117]
+                - generic [ref=e120]:
+                  - generic [ref=e121]: "81 | if (!res.ok) {"
+                  - generic [ref=e122]: 82 | const errBody = await res.text();
+                  - generic [ref=e123]: "> 83 | console.error(\"[TTS]\", res.status, errBody);"
+                  - generic [ref=e124]: "| ^"
+                  - generic [ref=e125]: "84 | throw new Error(`TTS misslyckades: ${res.status}`);"
+                  - generic [ref=e126]: "85 | }"
+                  - generic [ref=e127]: 86 | const blob = await res.blob();
+              - generic [ref=e128]:
+                - generic [ref=e129]:
+                  - paragraph [ref=e130]:
+                    - text: Call Stack
+                    - generic [ref=e131]: "4"
+                  - button "Show 3 ignore-listed frame(s)" [ref=e132] [cursor=pointer]:
+                    - text: Show 3 ignore-listed frame(s)
+                    - img [ref=e133]
+                - generic [ref=e135]:
+                  - generic [ref=e136]:
+                    - text: ColoringChatAi.useEffect
+                    - button "Open ColoringChatAi.useEffect in editor" [ref=e137] [cursor=pointer]:
+                      - img [ref=e138]
+                  - text: src/components/coloring-chat-ai.tsx (83:21)
+          - generic [ref=e140]: "1"
+          - generic [ref=e141]: "2"
+        - contentinfo [ref=e142]:
+          - region "Error feedback" [ref=e143]:
+            - paragraph [ref=e144]:
+              - link "Was this helpful?" [ref=e145] [cursor=pointer]:
+                - /url: https://nextjs.org/telemetry#error-feedback
+            - button "Mark as helpful" [ref=e146] [cursor=pointer]:
+              - img [ref=e147]
+            - button "Mark as not helpful" [ref=e150] [cursor=pointer]:
+              - img [ref=e151]
+    - generic [ref=e42] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e43]:
+        - img [ref=e44]
+      - generic [ref=e47]:
+        - button "Open issues overlay" [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]: "1"
+            - generic [ref=e51]: "2"
+          - generic [ref=e52]:
+            - text: Issue
+            - generic [ref=e53]: s
+        - button "Collapse issues badge" [ref=e54]:
+          - img [ref=e55]
+  - alert [ref=e57]
