@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Mic, MicOff, Volume2, VolumeX, X, ImagePlus } from "lucide-react";
 import { useDeepgramSTT } from "@/hooks/use-deepgram-stt";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "@/components/chat-message-bubble";
 import { ModelSelector } from "@/components/model-selector";
@@ -75,7 +74,7 @@ export function ColoringChat({
 }: ColoringChatProps) {
   const formId = useId();
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [internalMessages, setInternalMessages] = useState<
@@ -170,6 +169,7 @@ export function ColoringChat({
     setEditingImage(null);
     setAttachedImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (inputRef.current) inputRef.current.style.height = "auto";
 
     await onSendMessage?.(messageText, imageToSend ?? undefined);
   }
@@ -340,9 +340,10 @@ export function ColoringChat({
             <label htmlFor={`${formId}-input`} className="sr-only">
               Skriv ett meddelande
             </label>
-            <Input
+            <textarea
               id={`${formId}-input`}
               ref={inputRef}
+              rows={1}
               placeholder={
                 editingImage
                   ? "Beskriv vad du vill ändra…"
@@ -353,13 +354,26 @@ export function ColoringChat({
                       : "Skriv vad du vill måla…"
               }
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                // Auto-resize
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
+              }}
+              onKeyDown={(e) => {
+                // Enter sends, Shift+Enter adds newline
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  const form = e.currentTarget.form;
+                  if (form) form.requestSubmit();
+                }
+              }}
               onPaste={handlePaste}
               autoComplete="off"
-              className="h-10 rounded-xl border-border/50 bg-white/70 text-sm font-medium dark:bg-white/10"
+              className="min-h-10 max-h-40 w-full resize-none rounded-xl border border-border/50 bg-white/70 px-3 py-2 text-sm font-medium outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-white/10"
             />
             {deepgram.interim ? (
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 max-w-[60%] truncate text-xs text-muted-foreground/60 italic">
+              <span className="pointer-events-none absolute right-3 bottom-2.5 max-w-[60%] truncate text-xs text-muted-foreground/60 italic">
                 {deepgram.interim}
               </span>
             ) : null}
