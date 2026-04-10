@@ -14,6 +14,7 @@ VERKTYG generateColoringPage:
 - Anropa detta verktyg när användaren vill ha en målarbild.
 - englishImagePrompt: en bra engelsk beskrivning som matchar användarens önskade stil. Var specifik och anpassa detaljeringsnivån efter vad användaren ber om.
 - swedishAltText: kort bildbeskrivning på svenska.
+- orientation: välj "portrait" (stående) eller "landscape" (liggande) beroende på motivet. Använd landscape för breda scener (landskap, bilar, tåg, flygplan, panorama). Använd portrait för höga motiv (personer, djur, byggnader, träd). Tänk på vad som ger bäst komposition.
 - Verktyget returnerar imageId, imageSrc och imageAlt.
 
 BILDREDIGERING:

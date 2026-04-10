@@ -42,6 +42,12 @@ export const generateColoringPage = tool({
       .describe(
         "Kort engelsk beskrivning av ändringen. Krävs tillsammans med referenceImageId.",
       ),
+    orientation: z
+      .enum(["portrait", "landscape"])
+      .default("portrait")
+      .describe(
+        "Bildorientering: 'portrait' (stående, 3:4) eller 'landscape' (liggande, 4:3). Välj baserat på motivet.",
+      ),
   }),
   // Send the generated image to the chat model so it can see and describe it.
   // The image-data part is included LIVE (in the multi-step streamText loop),
@@ -100,9 +106,14 @@ export const generateColoringPage = tool({
     swedishAltText,
     referenceImageId,
     editInstruction,
+    orientation = "portrait",
   }) => {
+    const aspectDesc =
+      orientation === "landscape"
+        ? "landscape orientation (4:3 aspect ratio, wider than tall)"
+        : "portrait orientation (3:4 aspect ratio like A4 paper)";
     const safePrompt =
-      "Black and white line art coloring page in portrait orientation (3:4 aspect ratio like A4 paper), " +
+      `Black and white line art coloring page in ${aspectDesc}, ` +
       "clean outlines, no shading, no grayscale, no filled areas, " +
       "no text, no letters, no color, no photorealism: " +
       englishImagePrompt;
