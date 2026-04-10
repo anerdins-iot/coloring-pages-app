@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Mic, Square, Volume2, VolumeX, X, Download } from "lucide-react";
+import { Loader2, Mic, Square, Volume2, VolumeX, X, Download, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "@/components/chat-message-bubble";
 import { ModelSelector } from "@/components/model-selector";
-import { ColoringImageLightbox } from "@/components/coloring-image-lightbox";
 import type { ChatStatus } from "ai";
 import type { ColoringChatMessage } from "@/types/coloring-chat";
 import type { ImageModelConfig, ImageModelId } from "@/lib/image-models";
@@ -113,17 +112,11 @@ export function ColoringChat({
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<{
     imageId: string;
     imageSrc: string;
     imageAlt: string;
   } | null>(null);
-
-  // Find the latest generated image for the preview panel
-  const latestImage = [...messages]
-    .reverse()
-    .find((m) => m.imageSrc && m.imageSrc.startsWith("data:"));
 
   function handleRequestEdit(
     imageId: string,
@@ -233,277 +226,169 @@ export function ColoringChat({
   const streaming = chatStatus === "streaming" || chatStatus === "submitted";
 
   return (
-    <>
-      <div className="flex h-dvh flex-col lg:flex-row">
-        {/* ===== LEFT: Chat panel ===== */}
-        <div className="flex min-w-0 flex-1 flex-col lg:max-w-[520px] xl:max-w-[580px]">
-          {/* Header */}
-          <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2 sm:px-6 sm:pt-6">
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold tracking-tight text-white drop-shadow-md sm:text-2xl">
-                Måla med magi
-              </h1>
-              <p className="text-xs text-white/70 drop-shadow-sm sm:text-sm">
-                Skriv vad du vill måla — AI:n skapar bilden!
-              </p>
-            </div>
-            {imageModel && imageModels && onImageModelChange ? (
-              <div className="flex flex-col items-end gap-0.5 shrink-0">
-                <ModelSelector
-                  models={imageModels}
-                  value={imageModel}
-                  onChange={onImageModelChange}
-                />
-                {totalCost > 0 ? (
-                  <span className="text-[10px] font-mono text-white/50">
-                    ${totalCost.toFixed(3)}
-                  </span>
-                ) : null}
-              </div>
+    <div className="mx-auto flex h-dvh w-full max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-6">
+      {/* Header */}
+      <header className="mb-3 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-white drop-shadow-lg sm:text-3xl">
+            Måla med magi
+          </h1>
+          <p className="text-sm font-medium text-white/80 drop-shadow-sm">
+            Skriv vad du vill måla — AI:n skapar bilden
+          </p>
+        </div>
+        {imageModel && imageModels && onImageModelChange ? (
+          <div className="flex flex-col items-end gap-0.5 shrink-0">
+            <ModelSelector
+              models={imageModels}
+              value={imageModel}
+              onChange={onImageModelChange}
+            />
+            {totalCost > 0 ? (
+              <span className="text-[10px] font-mono text-white/50">
+                ${totalCost.toFixed(3)}
+              </span>
             ) : null}
-          </header>
+          </div>
+        ) : null}
+      </header>
 
-          {/* Chat area */}
-          <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-6 sm:pb-6">
-            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/20 bg-white/80 shadow-2xl backdrop-blur-xl dark:bg-black/60 dark:border-white/10">
-              {chatError ? (
-                <div className="px-4 pt-3">
-                  <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {chatError.message || "Ett fel uppstod."}
-                  </p>
-                </div>
-              ) : null}
-
-              {/* Messages */}
-              <ScrollArea className="min-h-0 flex-1">
-                <div className="flex flex-col gap-3 p-4">
-                  {messages.map((m) => (
-                    <ChatMessageBubble
-                      key={m.id}
-                      message={m}
-                      onRequestEdit={
-                        m.imageId ? handleRequestEdit : undefined
-                      }
-                      compact
-                    />
-                  ))}
-                  <div ref={scrollAnchorRef} aria-hidden />
-                </div>
-              </ScrollArea>
-
-              {/* Editing indicator */}
-              {editingImage ? (
-                <div className="mx-3 mb-2 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={editingImage.imageSrc}
-                    alt={editingImage.imageAlt}
-                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                    width={40}
-                    height={40}
-                  />
-                  <span className="flex-1 text-xs text-muted-foreground">
-                    Beskriv vad du vill ändra
-                  </span>
-                  <button
-                    type="button"
-                    className="shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground"
-                    onClick={() => setEditingImage(null)}
-                    aria-label="Avbryt"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                </div>
-              ) : null}
-
-              {/* Input form */}
-              <form
-                id={formId}
-                className="flex items-end gap-2 border-t border-border/40 p-3"
-                onSubmit={handleSubmit}
-              >
-                {voiceInputEnabled ? (
-                  <Button
-                    type="button"
-                    variant={recording ? "destructive" : "ghost"}
-                    size="icon"
-                    className="h-10 w-10 shrink-0 rounded-xl"
-                    disabled={transcribing}
-                    onClick={() =>
-                      recording
-                        ? void stopRecordingAndTranscribe()
-                        : void startRecording()
-                    }
-                    aria-pressed={recording}
-                    aria-label={
-                      recording
-                        ? "Stoppa inspelning"
-                        : "Spela in med mikrofon"
-                    }
-                  >
-                    {transcribing ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : recording ? (
-                      <Square className="size-4" fill="currentColor" />
-                    ) : (
-                      <Mic className="size-4" />
-                    )}
-                  </Button>
-                ) : null}
-                <div className="min-w-0 flex-1">
-                  <label htmlFor={`${formId}-input`} className="sr-only">
-                    Skriv ett meddelande
-                  </label>
-                  <Input
-                    id={`${formId}-input`}
-                    ref={inputRef}
-                    placeholder={
-                      editingImage
-                        ? "Beskriv vad du vill ändra…"
-                        : "Skriv vad du vill måla…"
-                    }
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    autoComplete="off"
-                    className="h-10 rounded-xl border-border/60 bg-muted/40 text-sm"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant={isVoiceEnabled ? "default" : "ghost"}
-                  size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl"
-                  onClick={onVoiceToggle}
-                  aria-label={
-                    isVoiceEnabled
-                      ? "Stäng av uppläsning"
-                      : "Slå på uppläsning"
-                  }
-                >
-                  {isVoiceEnabled ? (
-                    <Volume2 className="size-4" />
-                  ) : (
-                    <VolumeX className="size-4" />
-                  )}
-                </Button>
-                {streaming && onStopGeneration ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-10 shrink-0 rounded-xl px-3 text-xs"
-                    onClick={() => void onStopGeneration()}
-                  >
-                    Stopp
-                  </Button>
-                ) : null}
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="h-10 shrink-0 rounded-xl px-5 text-sm font-semibold"
-                  disabled={disableSend || !draft.trim()}
-                >
-                  Skicka
-                </Button>
-              </form>
-            </div>
-
-            <p className="mt-2 text-center text-[10px] text-white/50 drop-shadow-sm">
-              Gjort för barn — vuxna kan alltid hjälpa till.
+      {/* Main chat card — fills remaining height */}
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/25 bg-white/85 shadow-2xl backdrop-blur-xl dark:bg-black/70 dark:border-white/10 overflow-hidden">
+        {chatError ? (
+          <div className="px-5 pt-4">
+            <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {chatError.message || "Ett fel uppstod."}
             </p>
           </div>
-        </div>
+        ) : null}
 
-        {/* ===== RIGHT: Image preview panel (desktop only) ===== */}
-        <div className="hidden lg:flex flex-1 items-center justify-center p-6 xl:p-10">
-          {latestImage?.imageSrc ? (
-            <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
-              <button
-                type="button"
-                className="group relative w-full cursor-zoom-in overflow-hidden rounded-3xl border-4 border-white/30 bg-white/90 shadow-2xl backdrop-blur-sm transition-all duration-500 hover:shadow-3xl hover:border-white/50"
-                onClick={() => setLightboxOpen(true)}
-                aria-label="Öppna bild i fullstorlek"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={latestImage.imageSrc}
-                  alt={latestImage.imageAlt ?? "Senaste målarbilden"}
-                  className="aspect-square w-full object-contain p-4 transition-transform duration-700 group-hover:scale-[1.02]"
-                />
-              </button>
+        {/* Messages */}
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="flex flex-col gap-4 p-5 sm:p-6">
+            {messages.map((m) => (
+              <ChatMessageBubble
+                key={m.id}
+                message={m}
+                onRequestEdit={m.imageId ? handleRequestEdit : undefined}
+              />
+            ))}
+            <div ref={scrollAnchorRef} aria-hidden />
+          </div>
+        </ScrollArea>
 
-              {/* Actions under the image */}
-              <div className="flex items-center gap-3">
-                {latestImage.imageId ? (
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/70 px-4 py-2 text-sm font-medium text-foreground/80 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg"
-                    onClick={() =>
-                      handleRequestEdit(
-                        latestImage.imageId!,
-                        latestImage.imageSrc!,
-                        latestImage.imageAlt ?? "",
-                      )
-                    }
-                  >
-                    Ändra bilden
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/70 px-4 py-2 text-sm font-medium text-foreground/80 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg"
-                  onClick={() =>
-                    downloadImage(
-                      latestImage.imageSrc!,
-                      `malarbild-${latestImage.imageId ?? "bild"}.png`,
-                    )
-                  }
-                >
-                  <Download className="size-4" />
-                  Ladda ner
-                </button>
-                {latestImage.estimatedCost != null &&
-                latestImage.estimatedCost > 0 ? (
-                  <span
-                    className="rounded-lg bg-white/60 px-2.5 py-1 text-[11px] font-mono text-muted-foreground backdrop-blur-sm"
-                    title={`Modell: ${latestImage.modelUsed ?? "okänd"}`}
-                  >
-                    ${latestImage.estimatedCost.toFixed(3)}
-                  </span>
-                ) : null}
-              </div>
+        {/* Editing indicator */}
+        {editingImage ? (
+          <div className="mx-4 mb-2 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={editingImage.imageSrc}
+              alt={editingImage.imageAlt}
+              className="h-10 w-10 shrink-0 rounded-lg object-cover"
+              width={40}
+              height={40}
+            />
+            <span className="flex-1 text-sm text-muted-foreground">
+              Beskriv vad du vill ändra
+            </span>
+            <button
+              type="button"
+              className="shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground"
+              onClick={() => setEditingImage(null)}
+              aria-label="Avbryt"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        ) : null}
 
-              {latestImage.imageAlt ? (
-                <p className="text-center text-sm text-white/60 drop-shadow-sm">
-                  {latestImage.imageAlt}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4 text-center text-white/40">
-              <div className="flex h-48 w-48 items-center justify-center rounded-3xl border-2 border-dashed border-white/20">
-                <span className="text-6xl">🎨</span>
-              </div>
-              <p className="text-sm font-medium drop-shadow-sm">
-                Din målarbild visas här
-              </p>
-              <p className="text-xs text-white/30">
-                Skriv vad du vill måla i chatten
-              </p>
-            </div>
-          )}
-        </div>
+        {/* Input */}
+        <form
+          id={formId}
+          className="flex items-center gap-2 border-t border-border/30 bg-white/50 px-4 py-3 dark:bg-black/30"
+          onSubmit={handleSubmit}
+        >
+          {voiceInputEnabled ? (
+            <Button
+              type="button"
+              variant={recording ? "destructive" : "ghost"}
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-xl"
+              disabled={transcribing}
+              onClick={() =>
+                recording
+                  ? void stopRecordingAndTranscribe()
+                  : void startRecording()
+              }
+              aria-pressed={recording}
+              aria-label={recording ? "Stoppa inspelning" : "Mikrofon"}
+            >
+              {transcribing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : recording ? (
+                <Square className="size-4" fill="currentColor" />
+              ) : (
+                <Mic className="size-4" />
+              )}
+            </Button>
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <label htmlFor={`${formId}-input`} className="sr-only">
+              Skriv ett meddelande
+            </label>
+            <Input
+              id={`${formId}-input`}
+              ref={inputRef}
+              placeholder={
+                editingImage
+                  ? "Beskriv vad du vill ändra…"
+                  : "Skriv vad du vill måla…"
+              }
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              autoComplete="off"
+              className="h-10 rounded-xl border-border/50 bg-white/70 text-sm font-medium dark:bg-white/10"
+            />
+          </div>
+          <Button
+            type="button"
+            variant={isVoiceEnabled ? "default" : "ghost"}
+            size="icon"
+            className="h-10 w-10 shrink-0 rounded-xl"
+            onClick={onVoiceToggle}
+            aria-label={isVoiceEnabled ? "Ljud av" : "Ljud på"}
+          >
+            {isVoiceEnabled ? (
+              <Volume2 className="size-4" />
+            ) : (
+              <VolumeX className="size-4" />
+            )}
+          </Button>
+          {streaming && onStopGeneration ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 shrink-0 rounded-xl px-3"
+              onClick={() => void onStopGeneration()}
+            >
+              Stopp
+            </Button>
+          ) : null}
+          <Button
+            type="submit"
+            size="sm"
+            className="h-10 shrink-0 rounded-xl px-6 font-bold"
+            disabled={disableSend || !draft.trim()}
+          >
+            Skicka
+          </Button>
+        </form>
       </div>
 
-      {/* Lightbox */}
-      {latestImage?.imageSrc ? (
-        <ColoringImageLightbox
-          open={lightboxOpen}
-          onOpenChange={setLightboxOpen}
-          src={latestImage.imageSrc}
-          alt={latestImage.imageAlt ?? "Målarbild"}
-        />
-      ) : null}
-    </>
+      <p className="mt-2 text-center text-[11px] font-medium text-white/50 drop-shadow-sm">
+        Gjort för barn — vuxna kan alltid hjälpa till.
+      </p>
+    </div>
   );
 }
