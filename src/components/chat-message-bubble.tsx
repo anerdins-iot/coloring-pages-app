@@ -78,7 +78,7 @@ export function ChatMessageBubble({
               {/* Image — large inline */}
               <button
                 type="button"
-                className="group cursor-zoom-in overflow-hidden rounded-2xl border-2 border-black/5 bg-white shadow-lg transition-all hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="group inline-block cursor-zoom-in overflow-hidden rounded-2xl border-2 border-black/5 bg-white shadow-lg transition-all hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 onClick={() => setLightboxOpen(true)}
                 aria-label="Öppna bild i fullstorlek"
               >
@@ -87,16 +87,16 @@ export function ChatMessageBubble({
                   <img
                     src={message.imageSrc}
                     alt={message.imageAlt ?? "Genererad målarbild"}
-                    className="block w-full max-w-lg object-contain"
+                    className="block max-w-full object-contain sm:max-w-md"
                   />
                 ) : (
-                  <span className="relative block aspect-[3/4] w-full max-w-lg">
+                  <span className="relative block aspect-[3/4] w-full max-w-md">
                     <Image
                       src={message.imageSrc}
                       alt={message.imageAlt ?? "Genererad målarbild"}
                       fill
                       className="object-contain"
-                      sizes="(max-width: 768px) 100vw, 512px"
+                      sizes="(max-width: 768px) 100vw, 448px"
                     />
                   </span>
                 )}
