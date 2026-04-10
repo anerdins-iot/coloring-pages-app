@@ -90,8 +90,8 @@ export const generateColoringPage = tool({
     editInstruction,
   }) => {
     const safePrompt =
-      "Black and white line art coloring page for young children, " +
-      "very thick clean outlines, large simple areas to fill, no shading, no grayscale, " +
+      "Black and white line art coloring page, " +
+      "clean outlines, no shading, no grayscale, no filled areas, " +
       "no text, no letters, no color, no photorealism: " +
       englishImagePrompt;
 
