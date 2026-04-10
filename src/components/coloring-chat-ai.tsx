@@ -1,7 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { type UIMessage } from "ai";
+import { createStrippedTransport } from "@/lib/stripped-chat-transport";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ColoringChat } from "@/components/coloring-chat";
 import { mapUiMessagesToColoringMessages } from "@/lib/map-ui-messages";
@@ -35,7 +36,7 @@ export function ColoringChatAi() {
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport({
+      createStrippedTransport({
         api: "/api/chat",
         body: { imageModel },
       }),
