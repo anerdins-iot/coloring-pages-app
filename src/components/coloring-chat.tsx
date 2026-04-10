@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Mic, Square, Volume2, VolumeX, X, Download, Pencil, ImagePlus } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, X, ImagePlus } from "lucide-react";
+import { useDeepgramSTT } from "@/hooks/use-deepgram-stt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,28 +51,6 @@ function makeId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onloadend = () => {
-      const res = r.result;
-      if (typeof res !== "string") {
-        reject(new Error("Filavläsning misslyckades"));
-        return;
-      }
-      const comma = res.indexOf(",");
-      if (comma === -1) {
-        reject(new Error("Ogiltig data-URL"));
-        return;
-      }
-      resolve(res.slice(comma + 1));
-    };
-    r.onerror = () =>
-      reject(r.error ?? new Error("Filavläsning misslyckades"));
-    r.readAsDataURL(blob);
-  });
-}
-
 function downloadImage(dataUrl: string, filename: string) {
   const a = document.createElement("a");
   a.href = dataUrl;
@@ -98,8 +77,6 @@ export function ColoringChat({
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
 
   const [internalMessages, setInternalMessages] = useState<
     ColoringChatMessage[]
@@ -112,13 +89,33 @@ export function ColoringChat({
 
   const [draft, setDraft] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null); // data-URL
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
+  const deepgram = useDeepgramSTT();
   const [editingImage, setEditingImage] = useState<{
     imageId: string;
     imageSrc: string;
     imageAlt: string;
   } | null>(null);
+
+  // Sync Deepgram real-time transcript into draft field
+  const prevDraftBeforeSTT = useRef("");
+  useEffect(() => {
+    if (!deepgram.listening && !deepgram.interim && !deepgram.transcript) return;
+    const live = deepgram.interim || deepgram.transcript;
+    if (live) {
+      const prefix = prevDraftBeforeSTT.current;
+      setDraft(prefix ? `${prefix} ${live}` : live);
+    }
+  }, [deepgram.interim, deepgram.transcript, deepgram.listening]);
+
+  // When STT finishes (listening goes false), lock the final transcript into draft
+  const wasListening = useRef(false);
+  useEffect(() => {
+    if (wasListening.current && !deepgram.listening && deepgram.transcript) {
+      const prefix = prevDraftBeforeSTT.current;
+      setDraft(prefix ? `${prefix} ${deepgram.transcript}` : deepgram.transcript);
+    }
+    wasListening.current = deepgram.listening;
+  }, [deepgram.listening, deepgram.transcript]);
 
   function handleRequestEdit(
     imageId: string,
@@ -193,66 +190,12 @@ export function ColoringChat({
     await onSendMessage?.(messageText, imageToSend ?? undefined);
   }
 
-  async function startRecording() {
-    if (!voiceInputEnabled || recording || transcribing) return;
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    chunksRef.current = [];
-    const preferredTypes = [
-      "audio/webm;codecs=opus",
-      "audio/webm",
-      "audio/mp4",
-    ];
-    const mimeType =
-      preferredTypes.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
-    const rec = mimeType
-      ? new MediaRecorder(stream, { mimeType })
-      : new MediaRecorder(stream);
-    mediaRecorderRef.current = rec;
-    rec.ondataavailable = (ev) => {
-      if (ev.data.size > 0) chunksRef.current.push(ev.data);
-    };
-    rec.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
-    };
-    rec.start();
-    setRecording(true);
-  }
-
-  async function stopRecordingAndTranscribe() {
-    const rec = mediaRecorderRef.current;
-    if (!rec || !voiceInputEnabled) return;
-    const mime = rec.mimeType || "audio/webm";
-    setRecording(false);
-    await new Promise<void>((resolve) => {
-      rec.addEventListener("stop", () => resolve(), { once: true });
-      rec.stop();
-    });
-    mediaRecorderRef.current = null;
-
-    const blob = new Blob(chunksRef.current, { type: mime });
-    chunksRef.current = [];
-    if (blob.size < 64) return;
-
-    setTranscribing(true);
-    try {
-      const audioBase64 = await blobToBase64(blob);
-      const res = await fetch("/api/stt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audioBase64, mimeType: blob.type || mime }),
-      });
-      const data = (await res.json()) as { text?: string; error?: string };
-      if (!res.ok) {
-        console.error("[STT]", res.status, data);
-        throw new Error(data.error ?? "STT misslyckades");
-      }
-      if (data.text?.trim()) {
-        setDraft((d) => (d ? `${d.trim()} ${data.text}` : data.text!));
-      }
-    } catch (err) {
-      console.error("[STT]", err);
-    } finally {
-      setTranscribing(false);
+  function toggleSTT() {
+    if (deepgram.listening) {
+      deepgram.stop();
+    } else {
+      prevDraftBeforeSTT.current = draft.trim();
+      void deepgram.start();
     }
   }
 
@@ -396,22 +339,15 @@ export function ColoringChat({
           {voiceInputEnabled ? (
             <Button
               type="button"
-              variant={recording ? "destructive" : "ghost"}
+              variant={deepgram.listening ? "destructive" : "ghost"}
               size="icon"
               className="h-10 w-10 shrink-0 rounded-xl"
-              disabled={transcribing}
-              onClick={() =>
-                recording
-                  ? void stopRecordingAndTranscribe()
-                  : void startRecording()
-              }
-              aria-pressed={recording}
-              aria-label={recording ? "Stoppa inspelning" : "Mikrofon"}
+              onClick={toggleSTT}
+              aria-pressed={deepgram.listening}
+              aria-label={deepgram.listening ? "Stoppa diktering" : "Diktera"}
             >
-              {transcribing ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : recording ? (
-                <Square className="size-4" fill="currentColor" />
+              {deepgram.listening ? (
+                <MicOff className="size-4 animate-pulse" />
               ) : (
                 <Mic className="size-4" />
               )}
