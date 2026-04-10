@@ -116,10 +116,18 @@ export function ColoringChatAi() {
   }, [messages, status, isVoiceEnabled]);
 
   const handleSend = useCallback(
-    async (text: string, files?: FileList) => {
-      console.info("[handleSend]", { text, hasFiles: !!files, fileCount: files?.length });
-      if (files && files.length > 0) {
-        await sendMessage({ text, files });
+    async (text: string, imageDataUrl?: string) => {
+      if (imageDataUrl) {
+        await sendMessage({
+          text,
+          files: [
+            {
+              type: "file" as const,
+              mediaType: "image/png",
+              url: imageDataUrl,
+            },
+          ],
+        });
       } else {
         await sendMessage({ text });
       }

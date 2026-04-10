@@ -16,7 +16,7 @@ export type ColoringChatProps = {
   messages?: ColoringChatMessage[];
   isVoiceEnabled?: boolean;
   onVoiceToggle?: () => void;
-  onSendMessage?: (text: string, files?: FileList) => void | Promise<void>;
+  onSendMessage?: (text: string, imageDataUrl?: string) => void | Promise<void>;
   voiceInputEnabled?: boolean;
   disableSend?: boolean;
   chatStatus?: ChatStatus;
@@ -111,7 +111,7 @@ export function ColoringChat({
   const messages = isControlledList ? controlledMessages : internalMessages;
 
   const [draft, setDraft] = useState("");
-  const [attachedFiles, setAttachedFiles] = useState<FileList | null>(null);
+  const [attachedImage, setAttachedImage] = useState<string | null>(null); // data-URL
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [editingImage, setEditingImage] = useState<{
@@ -136,16 +136,21 @@ export function ColoringChat({
     });
   }, [messages]);
 
-  const previewUrl =
-    attachedFiles && attachedFiles.length > 0
-      ? URL.createObjectURL(attachedFiles[0])
-      : null;
+  // Helper: read a File as data-URL
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error ?? new Error("Filläsning misslyckades"));
+      reader.readAsDataURL(file);
+    });
+  }
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+  async function attachFile(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    const dataUrl = await readFileAsDataUrl(file);
+    setAttachedImage(dataUrl);
+  }
 
   function handlePaste(e: React.ClipboardEvent) {
     const items = e.clipboardData?.items;
@@ -154,11 +159,7 @@ export function ColoringChat({
       if (item.type.startsWith("image/")) {
         e.preventDefault();
         const file = item.getAsFile();
-        if (file) {
-          const dt = new DataTransfer();
-          dt.items.add(file);
-          setAttachedFiles(dt.files);
-        }
+        if (file) void attachFile(file);
         break;
       }
     }
@@ -167,7 +168,7 @@ export function ColoringChat({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = draft.trim();
-    if ((!trimmed && !attachedFiles) || disableSend) return;
+    if ((!trimmed && !attachedImage) || disableSend) return;
 
     const messageText = editingImage
       ? `[Redigera bild ${editingImage.imageId}] ${trimmed || "Gör en målarbild av detta"}`
@@ -178,18 +179,18 @@ export function ColoringChat({
         id: makeId(),
         role: "user",
         content: trimmed || "Gör en målarbild av detta",
+        uploadedImageUrl: attachedImage ?? undefined,
       };
       setInternalMessages((prev) => [...prev, userMsg]);
     }
-    // Capture files before clearing state (React may re-render and invalidate ref)
-    const filesToSend = attachedFiles;
 
+    const imageToSend = attachedImage;
     setDraft("");
     setEditingImage(null);
-    setAttachedFiles(null);
+    setAttachedImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
 
-    await onSendMessage?.(messageText, filesToSend ?? undefined);
+    await onSendMessage?.(messageText, imageToSend ?? undefined);
   }
 
   async function startRecording() {
@@ -319,15 +320,18 @@ export function ColoringChat({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(e) => setAttachedFiles(e.target.files)}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void attachFile(file);
+          }}
         />
 
         {/* Attached image preview */}
-        {previewUrl ? (
+        {attachedImage ? (
           <div className="mx-4 mb-2 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50/50 px-3 py-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={previewUrl}
+              src={attachedImage}
               alt="Bifogad bild"
               className="h-12 w-12 rounded-lg object-cover shrink-0"
             />
@@ -338,7 +342,7 @@ export function ColoringChat({
               type="button"
               className="shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground"
               onClick={() => {
-                setAttachedFiles(null);
+                setAttachedImage(null);
                 if (fileInputRef.current) fileInputRef.current.value = "";
               }}
               aria-label="Ta bort bifogad bild"
@@ -423,7 +427,7 @@ export function ColoringChat({
               placeholder={
                 editingImage
                   ? "Beskriv vad du vill ändra…"
-                  : attachedFiles
+                  : attachedImage
                     ? "Skriv vad du vill göra med bilden…"
                     : "Skriv vad du vill måla…"
               }
@@ -463,7 +467,7 @@ export function ColoringChat({
             type="submit"
             size="sm"
             className="h-10 shrink-0 rounded-xl px-6 font-bold"
-            disabled={disableSend || (!draft.trim() && !attachedFiles)}
+            disabled={disableSend || (!draft.trim() && !attachedImage)}
           >
             Skicka
           </Button>

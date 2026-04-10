@@ -6,7 +6,7 @@ import {
 } from "ai";
 
 /**
- * Chat transport that strips base64 image data from OLDER messages
+ * Chat transport that strips large data from OLDER messages
  * before sending to the server. The LAST user message keeps its files
  * intact so the model can see newly uploaded images.
  */
@@ -28,39 +28,38 @@ export function createStrippedTransport(options: {
 
     return messages.map((m, idx) => ({
       ...m,
-      parts: m.parts.map((p) => {
-        if (typeof p !== "object" || !("type" in p)) return p;
-        const pType = (p as { type: string }).type;
+      parts: m.parts
+        .map((p) => {
+          if (typeof p !== "object" || !("type" in p)) return p;
+          const pType = (p as { type: string }).type;
 
-        // Keep file parts in the last user message (newly uploaded image)
-        if (pType === "file" && idx !== lastUserIdx) {
-          const filePart = p as {
-            type: string;
-            url?: string;
-            mediaType?: string;
+          // Remove file parts from older messages entirely (not "[stripped]" placeholder)
+          if (pType === "file" && idx !== lastUserIdx) {
+            const filePart = p as { type: string; url?: string };
+            if (filePart.url && filePart.url.length > 1000) {
+              return null; // Remove entirely
+            }
+            return p;
+          }
+
+          // Strip tool imageSrc
+          if (!pType.startsWith("tool-")) return p;
+          const inv = p as {
+            state?: string;
+            output?: Record<string, unknown>;
           };
-          if (filePart.url && filePart.url.length > 1000) {
-            return { ...p, url: "[stripped]" };
+          if (
+            inv.state === "output-available" &&
+            inv.output &&
+            typeof inv.output.imageSrc === "string" &&
+            (inv.output.imageSrc as string).length > 1000
+          ) {
+            const { imageSrc: _, ...rest } = inv.output;
+            return { ...p, output: rest } as typeof p;
           }
           return p;
-        }
-
-        if (!pType.startsWith("tool-")) return p;
-        const inv = p as {
-          state?: string;
-          output?: Record<string, unknown>;
-        };
-        if (
-          inv.state === "output-available" &&
-          inv.output &&
-          typeof inv.output.imageSrc === "string" &&
-          (inv.output.imageSrc as string).length > 1000
-        ) {
-          const { imageSrc: _, ...rest } = inv.output;
-          return { ...p, output: rest } as typeof p;
-        }
-        return p;
-      }),
+        })
+        .filter(Boolean), // Remove nulls (stripped file parts)
     })) as UIMessage[];
   }
 
