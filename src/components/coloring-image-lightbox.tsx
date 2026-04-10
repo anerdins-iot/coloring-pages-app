@@ -26,7 +26,7 @@ export function ColoringImageLightbox({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className="max-h-[95vh] max-w-[95vw] gap-2 border-border/80 bg-card p-2 sm:p-3"
+        className="max-h-[95vh] max-w-[95vw] sm:max-w-[95vw] gap-2 border-border/80 bg-card p-2 sm:p-3"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Stor vy av målarbilden</DialogTitle>
