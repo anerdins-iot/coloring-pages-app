@@ -116,15 +116,9 @@ export function ColoringChatAi() {
 
   const handleSendText = useCallback(
     async (text: string) => {
-      setMessages(
-        messages.map((m) => ({
-          ...m,
-          parts: m.parts.filter((p) => p.type === "text"),
-        })),
-      );
       await sendMessage({ text });
     },
-    [messages, sendMessage, setMessages],
+    [sendMessage],
   );
 
   const busy = status === "submitted" || status === "streaming";
