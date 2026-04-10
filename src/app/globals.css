@@ -46,6 +46,16 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --color-play-sky-top: var(--play-sky-top);
+  --color-play-sky-mid: var(--play-sky-mid);
+  --color-play-hill: var(--play-hill);
+  --color-play-sun: var(--play-sun);
+  --color-voice-blue: var(--voice-blue);
+  --color-voice-blue-foreground: var(--voice-blue-foreground);
+  --color-voice-green: var(--voice-green);
+  --color-voice-green-foreground: var(--voice-green-foreground);
+  --color-voice-orange: var(--voice-orange);
+  --color-voice-orange-foreground: var(--voice-orange-foreground);
 }
 
 :root {
@@ -81,6 +91,16 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --play-sky-top: oklch(0.93 0.06 240);
+  --play-sky-mid: oklch(0.88 0.1 280);
+  --play-hill: oklch(0.9 0.08 150);
+  --play-sun: oklch(0.96 0.12 95);
+  --voice-blue: oklch(0.62 0.17 250);
+  --voice-blue-foreground: oklch(0.99 0.01 250);
+  --voice-green: oklch(0.72 0.16 145);
+  --voice-green-foreground: oklch(0.22 0.04 145);
+  --voice-orange: oklch(0.74 0.18 55);
+  --voice-orange-foreground: oklch(0.24 0.06 55);
 }
 
 .dark {
@@ -115,6 +135,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --play-sky-top: oklch(0.32 0.06 260);
+  --play-sky-mid: oklch(0.28 0.08 280);
+  --play-hill: oklch(0.3 0.06 150);
+  --play-sun: oklch(0.45 0.1 85);
+  --voice-blue: oklch(0.55 0.14 250);
+  --voice-blue-foreground: oklch(0.98 0.02 250);
+  --voice-green: oklch(0.58 0.12 145);
+  --voice-green-foreground: oklch(0.96 0.02 145);
+  --voice-orange: oklch(0.62 0.14 55);
+  --voice-orange-foreground: oklch(0.98 0.02 55);
 }
 
 @layer base {
@@ -126,5 +156,18 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .bg-play-landscape {
+    background:
+      radial-gradient(ellipse 100% 70% at 50% -15%, var(--play-sun) 0%, transparent 50%),
+      linear-gradient(
+        180deg,
+        var(--play-sky-top) 0%,
+        var(--play-sky-mid) 42%,
+        var(--play-hill) 100%
+      );
   }
 }
