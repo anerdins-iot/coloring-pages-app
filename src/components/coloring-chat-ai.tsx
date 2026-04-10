@@ -6,8 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ColoringChat } from "@/components/coloring-chat";
 import { mapUiMessagesToColoringMessages } from "@/lib/map-ui-messages";
 import { segmentCompleteSentences } from "@/lib/sentence-segmentation";
-import { voiceModeRequiresReadAloud } from "@/lib/voice-modes";
-import type { VoiceModeId } from "@/types/coloring-chat";
 
 const welcomeMessages: UIMessage[] = [
   {
@@ -27,7 +25,7 @@ function sentenceSpeechKey(s: string): string {
 }
 
 export function ColoringChatAi() {
-  const [voiceMode, setVoiceMode] = useState<VoiceModeId>("blue");
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat" }),
     [],
@@ -57,7 +55,7 @@ export function ColoringChatAi() {
       spokenKeysRef.current = new Set();
     }
 
-    if (!voiceModeRequiresReadAloud(voiceMode)) return;
+    if (!isVoiceEnabled) return;
 
     const textParts = lastAssistant.parts.filter(
       (p): p is { type: "text"; text: string } => p.type === "text",
@@ -76,7 +74,7 @@ export function ColoringChatAi() {
           const res = await fetch("/api/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: sentence, voiceMode }),
+            body: JSON.stringify({ text: sentence }),
           });
           if (!res.ok) {
             const errBody = await res.text();
@@ -103,7 +101,7 @@ export function ColoringChatAi() {
           console.error("[TTS queue]", e);
         });
     }
-  }, [messages, status, voiceMode]);
+  }, [messages, status, isVoiceEnabled]);
 
   const handleSendText = useCallback(
     async (text: string) => {
@@ -118,8 +116,8 @@ export function ColoringChatAi() {
     <ColoringChat
       messages={coloringMessages}
       onSendMessage={handleSendText}
-      voiceMode={voiceMode}
-      onVoiceModeChange={setVoiceMode}
+      isVoiceEnabled={isVoiceEnabled}
+      onVoiceToggle={() => setIsVoiceEnabled((prev) => !prev)}
       chatStatus={status}
       chatError={error}
       disableSend={busy}

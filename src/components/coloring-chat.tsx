@@ -1,29 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Loader2, Mic, Square } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Loader2, Mic, Square, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "@/components/chat-message-bubble";
-import { VoiceModePicker } from "@/components/voice-mode-picker";
 import type { ChatStatus } from "ai";
-import type { ColoringChatMessage, VoiceModeId } from "@/types/coloring-chat";
+import type { ColoringChatMessage } from "@/types/coloring-chat";
 
 export type ColoringChatProps = {
   initialMessages?: ColoringChatMessage[];
-  /**
-   * När satt visas dessa meddelanden direkt (t.ex. mappade från useChat).
-   * Lokala demo-meddelanden används då inte.
-   */
   messages?: ColoringChatMessage[];
-  /** Externt röstläge; när satt tillsammans med onVoiceModeChange är det kontrollerat. */
-  voiceMode?: VoiceModeId;
-  onVoiceModeChange?: (mode: VoiceModeId) => void;
-  /** Krävs för AI-läge när användaren skickar text. */
+  isVoiceEnabled?: boolean;
+  onVoiceToggle?: () => void;
   onSendMessage?: (text: string) => void | Promise<void>;
-  /** Aktivera inspelning → /api/stt (Google via Gemini). */
   voiceInputEnabled?: boolean;
   disableSend?: boolean;
   chatStatus?: ChatStatus;
@@ -78,8 +70,8 @@ function blobToBase64(blob: Blob): Promise<string> {
 export function ColoringChat({
   initialMessages,
   messages: controlledMessages,
-  voiceMode: controlledVoiceMode,
-  onVoiceModeChange,
+  isVoiceEnabled = false,
+  onVoiceToggle,
   onSendMessage,
   voiceInputEnabled = false,
   disableSend = false,
@@ -91,10 +83,6 @@ export function ColoringChat({
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-
-  const [internalVoiceMode, setInternalVoiceMode] =
-    useState<VoiceModeId>("blue");
-  const voiceMode = controlledVoiceMode ?? internalVoiceMode;
 
   const [internalMessages, setInternalMessages] = useState<
     ColoringChatMessage[]
@@ -108,16 +96,6 @@ export function ColoringChat({
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
-
-  const handleVoiceChange = useCallback(
-    (mode: VoiceModeId) => {
-      if (controlledVoiceMode === undefined) {
-        setInternalVoiceMode(mode);
-      }
-      onVoiceModeChange?.(mode);
-    },
-    [controlledVoiceMode, onVoiceModeChange],
-  );
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({
@@ -228,7 +206,6 @@ export function ColoringChat({
       <Card className="border-border/80 bg-card/95 shadow-xl backdrop-blur-md supports-backdrop-filter:bg-card/90 ring-1 ring-white/20 dark:ring-white/10">
         <CardHeader className="gap-2 pb-2">
           <CardTitle className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Magisk Chatt</CardTitle>
-          <VoiceModePicker value={voiceMode} onChange={handleVoiceChange} />
         </CardHeader>
         <CardContent className="flex flex-col gap-3 pt-0">
           {chatError ? (
@@ -293,25 +270,38 @@ export function ColoringChat({
                 />
               </div>
             </div>
-            {streaming && onStopGeneration ? (
+            <div className="flex gap-2 shrink-0">
               <Button
                 type="button"
-                variant="outline"
-                size="lg"
-                className="h-11 shrink-0 rounded-xl px-5"
-                onClick={() => void onStopGeneration()}
+                variant={isVoiceEnabled ? "default" : "secondary"}
+                size="icon"
+                className="h-11 w-11 shrink-0 rounded-xl"
+                onClick={onVoiceToggle}
+                aria-label={isVoiceEnabled ? "Stäng av uppläsning" : "Slå på uppläsning"}
+                title={isVoiceEnabled ? "Stäng av uppläsning" : "Slå på uppläsning"}
               >
-                Stoppa
+                {isVoiceEnabled ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
               </Button>
-            ) : null}
-            <Button
-              type="submit"
-              size="lg"
-              className="h-11 shrink-0 rounded-xl px-6"
-              disabled={disableSend || !draft.trim()}
-            >
-              Skicka
-            </Button>
+              {streaming && onStopGeneration ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="h-11 shrink-0 rounded-xl px-5"
+                  onClick={() => void onStopGeneration()}
+                >
+                  Stoppa
+                </Button>
+              ) : null}
+              <Button
+                type="submit"
+                size="lg"
+                className="h-11 shrink-0 rounded-xl px-6"
+                disabled={disableSend || !draft.trim()}
+              >
+                Skicka
+              </Button>
+            </div>
           </form>
           <p className="text-xs text-muted-foreground">
             Allt här är gjort för barn — vuxna kan alltid hjälpa till vid sidan av.

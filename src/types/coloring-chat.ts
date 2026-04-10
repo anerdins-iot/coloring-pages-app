@@ -1,5 +1,3 @@
-export type VoiceModeId = "blue" | "green" | "orange";
-
 export type ColoringChatRole = "user" | "assistant";
 
 export type ColoringChatMessage = {

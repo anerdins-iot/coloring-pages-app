@@ -6,19 +6,10 @@ import {
   synthesizeGeminiTtsPcm,
 } from "@/lib/gemini-tts";
 import { pcm16MonoToWav } from "@/lib/pcm-to-wav";
-import {
-  getGeminiTtsVoiceName,
-  voiceModeRequiresReadAloud,
-} from "@/lib/voice-modes";
-import type { VoiceModeId } from "@/types/coloring-chat";
 
 export const dynamic = "force-dynamic";
 
 const MAX_TEXT_LEN = 800;
-
-function isVoiceModeId(v: unknown): v is VoiceModeId {
-  return v === "blue" || v === "green" || v === "orange";
-}
 
 function ttsCacheDir(): string {
   return path.join(process.cwd(), ".cache", "tts");
@@ -38,9 +29,9 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { text?: unknown; voiceMode?: unknown };
+  let body: { text?: unknown };
   try {
-    body = (await req.json()) as { text?: unknown; voiceMode?: unknown };
+    body = (await req.json()) as { text?: unknown };
   } catch {
     return new Response(JSON.stringify({ error: "Ogiltig JSON." }), {
       status: 400,
@@ -48,28 +39,12 @@ export async function POST(req: Request) {
     });
   }
 
-  const { text, voiceMode } = body;
+  const { text } = body;
   if (typeof text !== "string" || !text.trim()) {
     return new Response(JSON.stringify({ error: "Text saknas." }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
-  }
-
-  if (!isVoiceModeId(voiceMode)) {
-    return new Response(JSON.stringify({ error: "Ogiltigt röstläge." }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  if (!voiceModeRequiresReadAloud(voiceMode)) {
-    return new Response(
-      JSON.stringify({
-        error: "Uppläsning är avstängd för det valda röstläget.",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
   }
 
   const trimmed = text.trim();
@@ -80,9 +55,9 @@ export async function POST(req: Request) {
     });
   }
 
-  const voiceName = getGeminiTtsVoiceName(voiceMode);
+  const voiceName = "Puck"; // Default child-friendly voice
   const hash = createHash("sha256")
-    .update(`${voiceMode}\0${voiceName}\0${trimmed}`, "utf8")
+    .update(`${voiceName}\0${trimmed}`, "utf8")
     .digest("hex");
 
   const filePath = cacheFilename(hash);
