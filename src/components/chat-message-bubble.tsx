@@ -78,7 +78,7 @@ export function ChatMessageBubble({
               {/* Image — large inline */}
               <button
                 type="button"
-                className="group inline-block cursor-zoom-in overflow-hidden rounded-2xl border-2 border-black/5 bg-white shadow-lg transition-all hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="group w-fit cursor-zoom-in self-start overflow-hidden rounded-2xl border-2 border-black/5 bg-white shadow-lg transition-all hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 onClick={() => setLightboxOpen(true)}
                 aria-label="Öppna bild i fullstorlek"
               >
