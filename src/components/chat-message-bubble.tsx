@@ -53,7 +53,7 @@ export function ChatMessageBubble({
           {message.content ? (
             <div
               className={cn(
-                "prose prose-sm max-w-none break-words leading-relaxed",
+                "prose prose-sm max-w-none break-words leading-relaxed font-sans",
                 isUser ? "prose-invert" : "dark:prose-invert",
               )}
             >
