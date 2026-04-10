@@ -181,15 +181,15 @@ export function ColoringChat({
       };
       setInternalMessages((prev) => [...prev, userMsg]);
     }
+    // Capture files before clearing state (React may re-render and invalidate ref)
+    const filesToSend = attachedFiles;
+
     setDraft("");
     setEditingImage(null);
-    if (attachedFiles) {
-      setAttachedFiles(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      await onSendMessage?.(messageText, attachedFiles);
-    } else {
-      await onSendMessage?.(messageText);
-    }
+    setAttachedFiles(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    await onSendMessage?.(messageText, filesToSend ?? undefined);
   }
 
   async function startRecording() {

@@ -26,34 +26,33 @@ export function ColoringImageLightbox({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className="max-h-[min(90vh,920px)] max-w-[min(96vw,720px)] gap-3 border-border/80 bg-card p-3 sm:p-4"
+        className="max-h-[95vh] max-w-[95vw] gap-2 border-border/80 bg-card p-2 sm:p-3"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Stor vy av målarbilden</DialogTitle>
           <DialogDescription>{alt}</DialogDescription>
         </DialogHeader>
-        <div className="relative aspect-square w-full max-h-[min(75vh,680px)] overflow-hidden rounded-lg bg-muted">
+        <div className="relative w-full overflow-hidden rounded-lg bg-white">
           {src.startsWith("data:") ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={src}
               alt={alt}
-              className="h-full max-h-[min(75vh,680px)] w-full object-contain"
+              className="max-h-[88vh] w-full object-contain"
             />
           ) : (
-            <Image
-              src={src}
-              alt={alt}
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 96vw, 720px"
-              priority={open}
-            />
+            <div className="relative aspect-[3/4] w-full max-h-[88vh]">
+              <Image
+                src={src}
+                alt={alt}
+                fill
+                className="object-contain"
+                sizes="95vw"
+                priority={open}
+              />
+            </div>
           )}
         </div>
-        <p className="text-center text-xs text-muted-foreground">
-          Tips: tryck utanför bilden eller på Stäng för att gå tillbaka till chatten.
-        </p>
       </DialogContent>
     </Dialog>
   );

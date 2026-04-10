@@ -115,9 +115,10 @@ export function ColoringChatAi() {
     }
   }, [messages, status, isVoiceEnabled]);
 
-  const handleSendText = useCallback(
+  const handleSend = useCallback(
     async (text: string, files?: FileList) => {
-      if (files) {
+      console.info("[handleSend]", { text, hasFiles: !!files, fileCount: files?.length });
+      if (files && files.length > 0) {
         await sendMessage({ text, files });
       } else {
         await sendMessage({ text });
@@ -131,7 +132,7 @@ export function ColoringChatAi() {
   return (
     <ColoringChat
       messages={coloringMessages}
-      onSendMessage={handleSendText}
+      onSendMessage={handleSend}
       isVoiceEnabled={isVoiceEnabled}
       onVoiceToggle={() => setIsVoiceEnabled((prev) => !prev)}
       chatStatus={status}
