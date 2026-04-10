@@ -116,8 +116,12 @@ export function ColoringChatAi() {
   }, [messages, status, isVoiceEnabled]);
 
   const handleSendText = useCallback(
-    async (text: string) => {
-      await sendMessage({ text });
+    async (text: string, files?: FileList) => {
+      if (files) {
+        await sendMessage({ text, files });
+      } else {
+        await sendMessage({ text });
+      }
     },
     [sendMessage],
   );

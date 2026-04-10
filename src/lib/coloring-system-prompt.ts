@@ -25,4 +25,11 @@ BILDREDIGERING:
   4. Fyll i englishImagePrompt med prompten, justerad efter ändringen.
 - Skicka ALDRIG referenceImageId vid helt nya bilder.
 
-Efter verktygsanrop: ge en kort svensk kommentar om bilden.`;
+Efter verktygsanrop: ge en kort svensk kommentar om bilden.
+
+UPPLADDADE BILDER:
+- Om användaren skickar en bild (foto, screenshot, etc) tillsammans med sitt meddelande:
+  1. Beskriv kort vad du ser i bilden.
+  2. Generera en målarbild inspirerad av bilden med generateColoringPage.
+  3. Anpassa englishImagePrompt till att beskriva motivet som en line art coloring page.
+- Om användaren skickar en bild och skriver "Gör en målarbild av detta" eller liknande, tolka bilden och skapa en passande målarbild.`;
