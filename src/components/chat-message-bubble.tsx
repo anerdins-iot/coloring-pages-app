@@ -39,13 +39,24 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
               aria-label="Öppna större bild av målarbilden"
             >
               <span className="relative block aspect-square w-full max-w-[240px]">
-                <Image
-                  src={message.imageSrc}
-                  alt={message.imageAlt ?? "Genererad målarbild"}
-                  fill
-                  className="object-cover transition group-hover:brightness-95"
-                  sizes="240px"
-                />
+                {message.imageSrc.startsWith("data:") ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- data-URL från Imagen finns inte som statisk fil
+                  <img
+                    src={message.imageSrc}
+                    alt={message.imageAlt ?? "Genererad målarbild"}
+                    className="h-full w-full object-cover transition group-hover:brightness-95"
+                    width={240}
+                    height={240}
+                  />
+                ) : (
+                  <Image
+                    src={message.imageSrc}
+                    alt={message.imageAlt ?? "Genererad målarbild"}
+                    fill
+                    className="object-cover transition group-hover:brightness-95"
+                    sizes="240px"
+                  />
+                )}
               </span>
               <span className="mt-1 block px-1 pb-1 text-xs text-muted-foreground group-hover:text-foreground">
                 Tryck för stor bild
