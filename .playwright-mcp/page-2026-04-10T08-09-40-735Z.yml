@@ -1,0 +1,44 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - heading "Måla med magi" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Prata eller skriv, få trygga förslag och målarbilder du kan spara hemma.
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Magisk Chatt
+        - generic [ref=e10]:
+          - paragraph [ref=e11]: Röstläge
+          - paragraph [ref=e12]: Välj hur assistenten låter när du pratar med den. Du kan byta när du vill.
+          - group "Röstläge" [ref=e13]:
+            - button "Blå röst Lugn och tydlig — bra när man vill ha långsamma, tydliga ord. Uppläsning påslagen." [pressed] [ref=e14]:
+              - generic [ref=e15]: Blå röst
+              - generic [ref=e16]: Lugn och tydlig — bra när man vill ha långsamma, tydliga ord. Uppläsning påslagen.
+            - button "Grön röst Glad och peppig — lite mer energi och lek i tonen. Uppläsning påslagen." [ref=e17]:
+              - generic [ref=e18]: Grön röst
+              - generic [ref=e19]: Glad och peppig — lite mer energi och lek i tonen. Uppläsning påslagen.
+            - button "Orange röst Sprallig och rolig — samma vänliga svar i chatten, men utan uppläsning (du läser själv)." [ref=e20]:
+              - generic [ref=e21]: Orange röst
+              - generic [ref=e22]: Sprallig och rolig — samma vänliga svar i chatten, men utan uppläsning (du läser själv).
+      - generic [ref=e23]:
+        - generic [ref=e27]:
+          - paragraph [ref=e31]: Hej! Skriv eller använd mikrofonen och säg vad du vill måla. Jag svarar på svenska och hjälper bara med trygga målarbilder.
+          - paragraph [ref=e53]: Kan du göra en enkel målarbild av en katt i svartvitt?
+          - generic [ref=e55]:
+            - paragraph [ref=e58]: Här är en målarbild du kan använda!
+            - button "Öppna större bild av målarbilden" [ref=e59]:
+              - img "En enkel och söt katt som sitter ner." [ref=e61]
+              - generic [ref=e62]: Tryck för stor bild
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - button "Spela in med mikrofon" [ref=e34]:
+              - img
+            - generic [ref=e35]:
+              - generic [ref=e36]: Skriv ett meddelande
+              - textbox "Skriv ett meddelande" [ref=e37]:
+                - /placeholder: Skriv vad du vill måla…
+          - button "Stoppa" [ref=e56]
+          - button "Skicka" [disabled]
+        - paragraph [ref=e38]: Allt här är gjort för barn — vuxna kan alltid hjälpa till vid sidan av.
+  - button "Open Next.js Dev Tools" [ref=e44] [cursor=pointer]:
+    - img [ref=e45]
+  - alert [ref=e48]
