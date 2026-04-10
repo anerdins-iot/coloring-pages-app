@@ -117,6 +117,12 @@ export async function POST(req: Request) {
           ],
         },
       },
+      onStepFinish: (step) => {
+        const u = step.usage;
+        console.info(
+          `[api/chat] step(${step.stepType}): ${u.inputTokens ?? 0}in + ${u.outputTokens ?? 0}out = ${u.totalTokens ?? 0}total | finish: ${step.finishReason}`,
+        );
+      },
       onFinish: async (event) => {
         const meta = event.providerMetadata?.google as
           | GoogleGenerativeAIProviderMetadata
@@ -127,7 +133,11 @@ export async function POST(req: Request) {
             meta.promptFeedback.blockReason,
           );
         }
-        console.info("[api/chat] totalUsage:", event.totalUsage);
+        const u = event.totalUsage;
+        const steps = event.steps?.length ?? 0;
+        console.info(
+          `[api/chat] TOTAL: ${u.inputTokens ?? 0}in + ${u.outputTokens ?? 0}out = ${u.totalTokens ?? 0}total | steps: ${steps} | finish: ${event.finishReason}`,
+        );
       },
     });
 
