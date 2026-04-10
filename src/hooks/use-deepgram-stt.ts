@@ -2,22 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type DeepgramWord = {
-  word: string;
-  start: number;
-  end: number;
-  confidence: number;
-  punctuated_word?: string;
-};
-
 type DeepgramAlternative = {
   transcript: string;
   confidence: number;
-  words: DeepgramWord[];
-};
-
-type DeepgramChannel = {
-  alternatives: DeepgramAlternative[];
 };
 
 type DeepgramResult = {
@@ -26,40 +13,46 @@ type DeepgramResult = {
   duration: number;
   start: number;
   is_final: boolean;
-  channel: DeepgramChannel;
+  channel: { alternatives: DeepgramAlternative[] };
   speech_final?: boolean;
+};
+
+type UseDeepgramSTTOptions = {
+  /** Called each time a chunk of speech is finalized. Append this to your input. */
+  onFinalChunk?: (text: string) => void;
 };
 
 export type DeepgramSTTState = {
   /** Whether currently listening */
   listening: boolean;
-  /** Current interim transcript (updates in real-time) */
+  /** Current interim (not yet finalized) words — display as ghost text */
   interim: string;
-  /** Accumulated final transcript from this session */
-  transcript: string;
   /** Start listening */
   start: () => Promise<void>;
-  /** Stop listening and return final transcript */
-  stop: () => string;
+  /** Stop listening */
+  stop: () => void;
   /** Any error */
   error: string | null;
 };
 
 const DEEPGRAM_WS_URL = "wss://api.deepgram.com/v1/listen";
 
-export function useDeepgramSTT(): DeepgramSTTState {
+export function useDeepgramSTT(
+  options?: UseDeepgramSTTOptions,
+): DeepgramSTTState {
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
-  const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | AudioWorkletNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | AudioWorkletNode | null>(
+    null,
+  );
   const contextRef = useRef<AudioContext | null>(null);
-  const finalPartsRef = useRef<string[]>([]);
+  const onFinalChunkRef = useRef(options?.onFinalChunk);
+  onFinalChunkRef.current = options?.onFinalChunk;
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanup();
@@ -71,19 +64,25 @@ export function useDeepgramSTT(): DeepgramSTTState {
     if (wsRef.current) {
       try {
         wsRef.current.close();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       wsRef.current = null;
     }
     if (processorRef.current) {
       try {
         processorRef.current.disconnect();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       processorRef.current = null;
     }
     if (contextRef.current) {
       try {
         void contextRef.current.close();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       contextRef.current = null;
     }
     if (streamRef.current) {
@@ -95,8 +94,6 @@ export function useDeepgramSTT(): DeepgramSTTState {
   const start = useCallback(async () => {
     setError(null);
     setInterim("");
-    setTranscript("");
-    finalPartsRef.current = [];
 
     // 1. Get API key from server
     let apiKey: string;
@@ -135,7 +132,10 @@ export function useDeepgramSTT(): DeepgramSTTState {
       channels: "1",
     });
 
-    const ws = new WebSocket(`${DEEPGRAM_WS_URL}?${params}`, ["token", apiKey]);
+    const ws = new WebSocket(`${DEEPGRAM_WS_URL}?${params}`, [
+      "token",
+      apiKey,
+    ]);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -146,14 +146,12 @@ export function useDeepgramSTT(): DeepgramSTTState {
       contextRef.current = audioContext;
       const source = audioContext.createMediaStreamSource(stream);
 
-      // Use ScriptProcessor for broad compatibility (including mobile)
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
         if (ws.readyState !== WebSocket.OPEN) return;
         const float32 = e.inputBuffer.getChannelData(0);
-        // Convert float32 to int16
         const int16 = new Int16Array(float32.length);
         for (let i = 0; i < float32.length; i++) {
           const s = Math.max(-1, Math.min(1, float32[i]));
@@ -177,13 +175,12 @@ export function useDeepgramSTT(): DeepgramSTTState {
         const text = alt.transcript.trim();
 
         if (data.is_final && text) {
-          finalPartsRef.current.push(text);
-          const full = finalPartsRef.current.join(" ");
-          setTranscript(full);
+          // Finalized chunk — append to draft via callback
           setInterim("");
+          onFinalChunkRef.current?.(text);
         } else if (!data.is_final && text) {
-          const full = finalPartsRef.current.join(" ");
-          setInterim(full ? `${full} ${text}` : text);
+          // Interim — show as ghost text
+          setInterim(text);
         }
       } catch {
         // Ignore non-JSON messages
@@ -201,28 +198,20 @@ export function useDeepgramSTT(): DeepgramSTTState {
     };
   }, []);
 
-  const stop = useCallback((): string => {
-    // Send close message to Deepgram
+  const stop = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "CloseStream" }));
-      // Small delay before closing
-      setTimeout(() => {
-        cleanup();
-      }, 300);
+      setTimeout(() => cleanup(), 300);
     } else {
       cleanup();
     }
-
     setListening(false);
-    const final = finalPartsRef.current.join(" ");
     setInterim("");
-    return final;
   }, []);
 
   return {
     listening,
     interim,
-    transcript,
     start,
     stop,
     error,

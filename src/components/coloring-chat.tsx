@@ -89,33 +89,17 @@ export function ColoringChat({
 
   const [draft, setDraft] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null); // data-URL
-  const deepgram = useDeepgramSTT();
+  const deepgram = useDeepgramSTT({
+    onFinalChunk: (text) => {
+      // Append each finalized chunk to draft — never overwrites user edits
+      setDraft((prev) => (prev ? `${prev} ${text}` : text));
+    },
+  });
   const [editingImage, setEditingImage] = useState<{
     imageId: string;
     imageSrc: string;
     imageAlt: string;
   } | null>(null);
-
-  // Sync Deepgram real-time transcript into draft field
-  const prevDraftBeforeSTT = useRef("");
-  useEffect(() => {
-    if (!deepgram.listening && !deepgram.interim && !deepgram.transcript) return;
-    const live = deepgram.interim || deepgram.transcript;
-    if (live) {
-      const prefix = prevDraftBeforeSTT.current;
-      setDraft(prefix ? `${prefix} ${live}` : live);
-    }
-  }, [deepgram.interim, deepgram.transcript, deepgram.listening]);
-
-  // When STT finishes (listening goes false), lock the final transcript into draft
-  const wasListening = useRef(false);
-  useEffect(() => {
-    if (wasListening.current && !deepgram.listening && deepgram.transcript) {
-      const prefix = prevDraftBeforeSTT.current;
-      setDraft(prefix ? `${prefix} ${deepgram.transcript}` : deepgram.transcript);
-    }
-    wasListening.current = deepgram.listening;
-  }, [deepgram.listening, deepgram.transcript]);
 
   function handleRequestEdit(
     imageId: string,
@@ -194,7 +178,6 @@ export function ColoringChat({
     if (deepgram.listening) {
       deepgram.stop();
     } else {
-      prevDraftBeforeSTT.current = draft.trim();
       void deepgram.start();
     }
   }
@@ -353,7 +336,7 @@ export function ColoringChat({
               )}
             </Button>
           ) : null}
-          <div className="min-w-0 flex-1">
+          <div className="relative min-w-0 flex-1">
             <label htmlFor={`${formId}-input`} className="sr-only">
               Skriv ett meddelande
             </label>
@@ -365,7 +348,9 @@ export function ColoringChat({
                   ? "Beskriv vad du vill ändra…"
                   : attachedImage
                     ? "Skriv vad du vill göra med bilden…"
-                    : "Skriv vad du vill måla…"
+                    : deepgram.listening
+                      ? "Lyssnar…"
+                      : "Skriv vad du vill måla…"
               }
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -373,6 +358,11 @@ export function ColoringChat({
               autoComplete="off"
               className="h-10 rounded-xl border-border/50 bg-white/70 text-sm font-medium dark:bg-white/10"
             />
+            {deepgram.interim ? (
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 max-w-[60%] truncate text-xs text-muted-foreground/60 italic">
+                {deepgram.interim}
+              </span>
+            ) : null}
           </div>
           <Button
             type="button"
