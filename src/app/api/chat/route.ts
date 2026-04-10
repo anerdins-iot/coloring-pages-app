@@ -6,7 +6,7 @@ import {
   convertToModelMessages,
   streamText,
   stepCountIs,
-  type UIMessage,
+  type ModelMessage,
 } from "ai";
 import { COLORING_SYSTEM_PROMPT } from "@/lib/coloring-system-prompt";
 import {
@@ -17,53 +17,28 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const model = google("gemini-3.1-flash-lite-preview");
+const chatModel = google("gemini-3.1-flash-lite-preview");
 
 /**
- * Strips base64 image data (imageSrc) from ALL tool results in chat history.
- * Keeps imageId, imageAlt and other metadata intact so the AI agent can
- * reference images by ID without the actual pixel data bloating the context.
- * The actual base64 lives in the server-side image-store keyed by imageId.
+ * Strips ALL image data from model messages to prevent exceeding token limits.
+ * Deep-scans tool results for image-data content parts and large imageSrc strings.
  */
-function stripImageDataFromHistory(messages: UIMessage[]): UIMessage[] {
-  return messages.map((m) => {
-    if (m.role !== "assistant") return m;
-
-    const hasToolImage = m.parts.some((p) => {
-      if (typeof p !== "object" || !("type" in p)) return false;
-      const pType = (p as { type: string }).type;
-      if (!pType.startsWith("tool-")) return false;
-      const inv = p as { state?: string; output?: { imageSrc?: string } };
-      return inv.state === "output-available" && inv.output?.imageSrc;
-    });
-    if (!hasToolImage) return m;
-
-    const strippedParts = m.parts.map((p) => {
-      if (typeof p !== "object" || !("type" in p)) return p;
-      const pType = (p as { type: string }).type;
-      if (!pType.startsWith("tool-")) return p;
-      const inv = p as {
-        type: string;
-        state?: string;
-        output?: {
-          imageSrc?: string;
-          imageAlt?: string;
-          imageId?: string;
-        };
-      };
-      if (inv.state === "output-available" && inv.output?.imageSrc) {
-        // Remove imageSrc entirely — keep only metadata
-        const { imageSrc: _stripped, ...restOutput } = inv.output;
-        return {
-          ...inv,
-          output: restOutput,
-        };
-      }
-      return p;
-    });
-
-    return { ...m, parts: strippedParts } as UIMessage;
+function stripImagesFromModelMessages(
+  messages: ModelMessage[],
+): ModelMessage[] {
+  // Deep JSON scan: remove any imageSrc data-URLs and image-data parts
+  const json = JSON.stringify(messages, (key, value) => {
+    // Remove imageSrc fields that contain data URLs
+    if (key === "imageSrc" && typeof value === "string" && value.length > 500) {
+      return undefined;
+    }
+    // Remove image-data/media/file-data parts from content arrays
+    if (key === "data" && typeof value === "string" && value.length > 10000) {
+      return undefined;
+    }
+    return value;
   });
+  return JSON.parse(json) as ModelMessage[];
 }
 
 export async function POST(req: Request) {
@@ -100,16 +75,18 @@ export async function POST(req: Request) {
   }
 
   try {
-    const cleanMessages = stripImageDataFromHistory(messages as UIMessage[]);
     const modelMessages = await convertToModelMessages(
-      cleanMessages as Parameters<typeof convertToModelMessages>[0],
+      messages as Parameters<typeof convertToModelMessages>[0],
       { tools: coloringToolSet },
     );
 
+    // Strip all image data AFTER conversion to model messages
+    const cleanMessages = stripImagesFromModelMessages(modelMessages);
+
     const result = streamText({
-      model,
+      model: chatModel,
       system: COLORING_SYSTEM_PROMPT,
-      messages: modelMessages,
+      messages: cleanMessages,
       tools: { generateColoringPage },
       stopWhen: stepCountIs(6),
       providerOptions: {
@@ -151,7 +128,7 @@ export async function POST(req: Request) {
     return result.toUIMessageStreamResponse({
       onError: (error) => {
         console.error("[api/chat] streamfel:", error);
-        return "Ett fel uppstod. Försök igen eller be en vuxen om hjälp.";
+        return "Ett fel uppstod. Försök igen.";
       },
     });
   } catch (err) {
