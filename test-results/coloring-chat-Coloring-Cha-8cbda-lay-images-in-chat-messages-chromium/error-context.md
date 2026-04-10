@@ -7,7 +7,7 @@
 # Test info
 
 - Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should display images in chat messages
-- Location: tests/e2e/coloring-chat.spec.ts:142:7
+- Location: tests/e2e/coloring-chat.spec.ts:73:7
 
 # Error details
 

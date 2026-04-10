@@ -7,7 +7,7 @@
 # Test info
 
 - Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should enable send button when text is entered
-- Location: tests/e2e/coloring-chat.spec.ts:86:7
+- Location: tests/e2e/coloring-chat.spec.ts:43:7
 
 # Error details
 

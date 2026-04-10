@@ -7,7 +7,7 @@
 # Test info
 
 - Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should load the app with welcome message
-- Location: tests/e2e/coloring-chat.spec.ts:10:7
+- Location: tests/e2e/coloring-chat.spec.ts:9:7
 
 # Error details
 

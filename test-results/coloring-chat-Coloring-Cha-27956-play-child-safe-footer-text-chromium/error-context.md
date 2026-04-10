@@ -7,7 +7,7 @@
 # Test info
 
 - Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should display child-safe footer text
-- Location: tests/e2e/coloring-chat.spec.ts:186:7
+- Location: tests/e2e/coloring-chat.spec.ts:100:7
 
 # Error details
 

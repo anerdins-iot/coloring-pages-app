@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should test multiple voice modes in message flow
-- Location: tests/e2e/coloring-chat.spec.ts:197:7
+- Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should display voice toggle button
+- Location: tests/e2e/coloring-chat.spec.ts:19:7
 
 # Error details
 

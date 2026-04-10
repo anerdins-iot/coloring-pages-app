@@ -7,7 +7,7 @@
 # Test info
 
 - Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should have input field and microphone button
-- Location: tests/e2e/coloring-chat.spec.ts:172:7
+- Location: tests/e2e/coloring-chat.spec.ts:91:7
 
 # Error details
 

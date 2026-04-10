@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should send a chat message and receive AI response with image generation
-- Location: tests/e2e/coloring-chat.spec.ts:104:7
+- Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should switch voice mode on and off
+- Location: tests/e2e/coloring-chat.spec.ts:28:7
 
 # Error details
 

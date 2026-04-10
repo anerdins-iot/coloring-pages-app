@@ -7,7 +7,7 @@
 # Test info
 
 - Name: coloring-chat.spec.ts >> Coloring Chat App E2E Tests >> should send a chat message and receive AI response with image generation
-- Location: tests/e2e/coloring-chat.spec.ts:104:7
+- Location: tests/e2e/coloring-chat.spec.ts:53:7
 
 # Error details
 
