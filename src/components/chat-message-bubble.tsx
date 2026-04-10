@@ -12,70 +12,88 @@ import { ColoringImageLightbox } from "@/components/coloring-image-lightbox";
 type ChatMessageBubbleProps = {
   message: ColoringChatMessage;
   onRequestEdit?: (imageId: string, imageSrc: string, imageAlt: string) => void;
+  /** Compact mode for split-layout chat panel */
+  compact?: boolean;
 };
 
-export function ChatMessageBubble({ message, onRequestEdit }: ChatMessageBubbleProps) {
+export function ChatMessageBubble({
+  message,
+  onRequestEdit,
+  compact = false,
+}: ChatMessageBubbleProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isUser = message.role === "user";
+
+  const imageSize = compact ? "max-w-[180px]" : "max-w-[240px]";
 
   return (
     <>
       <div
         className={cn(
           "flex w-full",
-          isUser ? "justify-end" : "justify-start"
+          isUser ? "justify-end" : "justify-start",
         )}
       >
         <div
           className={cn(
-            "max-w-[min(100%,34rem)] rounded-2xl px-5 py-4 text-sm leading-relaxed shadow-sm ring-1 ring-black/5 dark:ring-white/10",
+            "max-w-[min(100%,34rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ring-1 ring-black/5 dark:ring-white/10",
             isUser
               ? "rounded-br-md bg-primary text-primary-foreground"
-              : "rounded-bl-md bg-card text-card-foreground"
+              : "rounded-bl-md bg-white/60 text-card-foreground dark:bg-white/10",
+            compact && "px-3 py-2 text-[13px]",
           )}
         >
-          <div className={cn("prose prose-sm max-w-none break-words", isUser ? "prose-invert" : "dark:prose-invert")}>
+          <div
+            className={cn(
+              "prose prose-sm max-w-none break-words",
+              isUser ? "prose-invert" : "dark:prose-invert",
+            )}
+          >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {message.content}
             </ReactMarkdown>
           </div>
           {message.imageSrc ? (
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-3 flex flex-col gap-2">
               <button
                 type="button"
-                className="group relative w-full max-w-xs cursor-zoom-in overflow-hidden rounded-xl border-4 border-white/20 bg-background/60 shadow-lg text-left transition-all hover:scale-[1.02] hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50"
+                className="group cursor-zoom-in overflow-hidden rounded-xl border-2 border-white/40 bg-white shadow-md text-left transition-all hover:scale-[1.02] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 onClick={() => setLightboxOpen(true)}
-                aria-label="Öppna större bild av målarbilden"
+                aria-label="Öppna större bild"
               >
-                <span className="relative block aspect-square w-full max-w-[240px]">
-                  {message.imageSrc.startsWith("data:") ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- data-URL finns inte som statisk fil
-                    <img
-                      src={message.imageSrc}
-                      alt={message.imageAlt ?? "Genererad målarbild"}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      width={240}
-                      height={240}
-                    />
-                  ) : (
+                {message.imageSrc.startsWith("data:") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={message.imageSrc}
+                    alt={message.imageAlt ?? "Genererad målarbild"}
+                    className={cn(
+                      "block object-contain",
+                      compact ? "max-w-[180px]" : "max-w-[240px]",
+                    )}
+                  />
+                ) : (
+                  <span className={cn(
+                    "relative block aspect-square",
+                    compact ? "w-[180px]" : "w-[240px]",
+                  )}>
                     <Image
                       src={message.imageSrc}
                       alt={message.imageAlt ?? "Genererad målarbild"}
                       fill
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      sizes="240px"
+                      className="object-contain"
+                      sizes={compact ? "180px" : "240px"}
                     />
-                  )}
-                </span>
-                <span className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  Tryck för stor bild
-                </span>
+                  </span>
+                )}
               </button>
-              <div className="flex items-center gap-2 max-w-xs">
+              <div className="flex items-center gap-2">
                 {onRequestEdit ? (
                   <button
                     type="button"
-                    className="flex flex-1 items-center gap-2 rounded-2xl border-2 border-primary/20 bg-white/80 px-4 py-2 text-sm font-medium shadow-md transition-all hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-xl border border-primary/20 bg-white/80 px-3 py-1.5 text-xs font-medium shadow-sm transition-all hover:bg-white",
+                      imageSize,
+                    )}
                     onClick={() =>
                       onRequestEdit(
                         message.imageId ?? "",
@@ -84,13 +102,14 @@ export function ChatMessageBubble({ message, onRequestEdit }: ChatMessageBubbleP
                       )
                     }
                   >
-                    <Pencil className="size-4 shrink-0 text-primary" />
-                    Ändra bilden
+                    <Pencil className="size-3 shrink-0 text-primary" />
+                    Ändra
                   </button>
                 ) : null}
-                {message.estimatedCost != null && message.estimatedCost > 0 ? (
+                {message.estimatedCost != null &&
+                message.estimatedCost > 0 ? (
                   <span
-                    className="shrink-0 rounded-lg bg-muted/80 px-2 py-1 text-[10px] font-mono text-muted-foreground"
+                    className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground"
                     title={`Modell: ${message.modelUsed ?? "okänd"}`}
                   >
                     ${message.estimatedCost.toFixed(3)}

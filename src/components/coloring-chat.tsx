@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Mic, Square, Volume2, VolumeX, X } from "lucide-react";
+import { Loader2, Mic, Square, Volume2, VolumeX, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "@/components/chat-message-bubble";
 import { ModelSelector } from "@/components/model-selector";
+import { ColoringImageLightbox } from "@/components/coloring-image-lightbox";
 import type { ChatStatus } from "ai";
 import type { ColoringChatMessage } from "@/types/coloring-chat";
 import type { ImageModelConfig, ImageModelId } from "@/lib/image-models";
@@ -73,6 +73,13 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+function downloadImage(dataUrl: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
+}
+
 export function ColoringChat({
   initialMessages,
   messages: controlledMessages,
@@ -106,11 +113,17 @@ export function ColoringChat({
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<{
     imageId: string;
     imageSrc: string;
     imageAlt: string;
   } | null>(null);
+
+  // Find the latest generated image for the preview panel
+  const latestImage = [...messages]
+    .reverse()
+    .find((m) => m.imageSrc && m.imageSrc.startsWith("data:"));
 
   function handleRequestEdit(
     imageId: string,
@@ -186,11 +199,8 @@ export function ColoringChat({
     });
     mediaRecorderRef.current = null;
 
-    const blob = new Blob(chunksRef.current, {
-      type: mime,
-    });
+    const blob = new Blob(chunksRef.current, { type: mime });
     chunksRef.current = [];
-
     if (blob.size < 64) return;
 
     setTranscribing(true);
@@ -199,10 +209,7 @@ export function ColoringChat({
       const res = await fetch("/api/stt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          audioBase64,
-          mimeType: blob.type || mime,
-        }),
+        body: JSON.stringify({ audioBase64, mimeType: blob.type || mime }),
       });
       const data = (await res.json()) as { text?: string; error?: string };
       if (!res.ok) {
@@ -219,199 +226,284 @@ export function ColoringChat({
     }
   }
 
-  // Calculate total session cost
   const totalCost = messages.reduce(
     (sum, m) => sum + (m.estimatedCost ?? 0),
     0,
   );
-
   const streaming = chatStatus === "streaming" || chatStatus === "submitted";
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 pb-8 sm:p-6">
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Måla med magi
-          </h1>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Prata eller skriv, få trygga förslag och målarbilder du kan spara
-            hemma.
-          </p>
-        </div>
-        {imageModel && imageModels && onImageModelChange ? (
-          <div className="flex flex-col items-end gap-1 shrink-0 pt-1">
-            <ModelSelector
-              models={imageModels}
-              value={imageModel}
-              onChange={onImageModelChange}
-            />
-            {totalCost > 0 ? (
-              <span className="text-[10px] font-mono text-muted-foreground/60">
-                Session: ${totalCost.toFixed(3)}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </header>
-
-      <Card className="border-border/80 bg-card/95 shadow-xl backdrop-blur-md supports-backdrop-filter:bg-card/90 ring-1 ring-white/20 dark:ring-white/10">
-        <CardHeader className="gap-2 pb-2">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-            Magisk Chatt
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 pt-0">
-          {chatError ? (
-            <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {chatError.message ||
-                "Ett fel uppstod. Försök igen eller be en vuxen om hjälp."}
-            </p>
-          ) : null}
-
-          <ScrollArea className="h-[min(52vh,420px)] rounded-xl border border-border/60 bg-muted/30 pr-2 shadow-inner">
-            <div className="flex flex-col gap-4 p-4 sm:p-5">
-              {messages.map((m) => (
-                <ChatMessageBubble
-                  key={m.id}
-                  message={m}
-                  onRequestEdit={
-                    m.imageId ? handleRequestEdit : undefined
-                  }
+    <>
+      <div className="flex h-dvh flex-col lg:flex-row">
+        {/* ===== LEFT: Chat panel ===== */}
+        <div className="flex min-w-0 flex-1 flex-col lg:max-w-[520px] xl:max-w-[580px]">
+          {/* Header */}
+          <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2 sm:px-6 sm:pt-6">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight text-white drop-shadow-md sm:text-2xl">
+                Måla med magi
+              </h1>
+              <p className="text-xs text-white/70 drop-shadow-sm sm:text-sm">
+                Skriv vad du vill måla — AI:n skapar bilden!
+              </p>
+            </div>
+            {imageModel && imageModels && onImageModelChange ? (
+              <div className="flex flex-col items-end gap-0.5 shrink-0">
+                <ModelSelector
+                  models={imageModels}
+                  value={imageModel}
+                  onChange={onImageModelChange}
                 />
-              ))}
-              <div ref={scrollAnchorRef} aria-hidden />
-            </div>
-          </ScrollArea>
+                {totalCost > 0 ? (
+                  <span className="text-[10px] font-mono text-white/50">
+                    ${totalCost.toFixed(3)}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </header>
 
-          {editingImage ? (
-            <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- data-URL */}
-              <img
-                src={editingImage.imageSrc}
-                alt={editingImage.imageAlt}
-                className="h-12 w-12 shrink-0 rounded-lg object-cover"
-                width={48}
-                height={48}
-              />
-              <span className="flex-1 text-xs font-medium text-muted-foreground">
-                Redigerar bild — beskriv vad du vill ändra
-              </span>
-              <button
-                type="button"
-                className="shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                onClick={() => setEditingImage(null)}
-                aria-label="Avbryt redigering"
+          {/* Chat area */}
+          <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/20 bg-white/80 shadow-2xl backdrop-blur-xl dark:bg-black/60 dark:border-white/10">
+              {chatError ? (
+                <div className="px-4 pt-3">
+                  <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {chatError.message || "Ett fel uppstod."}
+                  </p>
+                </div>
+              ) : null}
+
+              {/* Messages */}
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="flex flex-col gap-3 p-4">
+                  {messages.map((m) => (
+                    <ChatMessageBubble
+                      key={m.id}
+                      message={m}
+                      onRequestEdit={
+                        m.imageId ? handleRequestEdit : undefined
+                      }
+                      compact
+                    />
+                  ))}
+                  <div ref={scrollAnchorRef} aria-hidden />
+                </div>
+              </ScrollArea>
+
+              {/* Editing indicator */}
+              {editingImage ? (
+                <div className="mx-3 mb-2 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={editingImage.imageSrc}
+                    alt={editingImage.imageAlt}
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                    width={40}
+                    height={40}
+                  />
+                  <span className="flex-1 text-xs text-muted-foreground">
+                    Beskriv vad du vill ändra
+                  </span>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground"
+                    onClick={() => setEditingImage(null)}
+                    aria-label="Avbryt"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ) : null}
+
+              {/* Input form */}
+              <form
+                id={formId}
+                className="flex items-end gap-2 border-t border-border/40 p-3"
+                onSubmit={handleSubmit}
               >
-                <X className="size-4" />
-              </button>
-            </div>
-          ) : null}
-
-          <form
-            id={formId}
-            className="flex flex-col gap-2 sm:flex-row sm:items-end"
-            onSubmit={handleSubmit}
-          >
-            <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
-              {voiceInputEnabled ? (
+                {voiceInputEnabled ? (
+                  <Button
+                    type="button"
+                    variant={recording ? "destructive" : "ghost"}
+                    size="icon"
+                    className="h-10 w-10 shrink-0 rounded-xl"
+                    disabled={transcribing}
+                    onClick={() =>
+                      recording
+                        ? void stopRecordingAndTranscribe()
+                        : void startRecording()
+                    }
+                    aria-pressed={recording}
+                    aria-label={
+                      recording
+                        ? "Stoppa inspelning"
+                        : "Spela in med mikrofon"
+                    }
+                  >
+                    {transcribing ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : recording ? (
+                      <Square className="size-4" fill="currentColor" />
+                    ) : (
+                      <Mic className="size-4" />
+                    )}
+                  </Button>
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <label htmlFor={`${formId}-input`} className="sr-only">
+                    Skriv ett meddelande
+                  </label>
+                  <Input
+                    id={`${formId}-input`}
+                    ref={inputRef}
+                    placeholder={
+                      editingImage
+                        ? "Beskriv vad du vill ändra…"
+                        : "Skriv vad du vill måla…"
+                    }
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    autoComplete="off"
+                    className="h-10 rounded-xl border-border/60 bg-muted/40 text-sm"
+                  />
+                </div>
                 <Button
                   type="button"
-                  variant={recording ? "destructive" : "secondary"}
-                  size="lg"
-                  className="h-11 shrink-0 rounded-xl px-4"
-                  disabled={transcribing}
-                  onClick={() =>
-                    recording
-                      ? void stopRecordingAndTranscribe()
-                      : void startRecording()
-                  }
-                  aria-pressed={recording}
+                  variant={isVoiceEnabled ? "default" : "ghost"}
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-xl"
+                  onClick={onVoiceToggle}
                   aria-label={
-                    recording
-                      ? "Stoppa inspelning"
-                      : "Spela in med mikrofon"
+                    isVoiceEnabled
+                      ? "Stäng av uppläsning"
+                      : "Slå på uppläsning"
                   }
                 >
-                  {transcribing ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : recording ? (
-                    <Square className="size-5" fill="currentColor" />
+                  {isVoiceEnabled ? (
+                    <Volume2 className="size-4" />
                   ) : (
-                    <Mic className="size-5" />
+                    <VolumeX className="size-4" />
                   )}
                 </Button>
-              ) : null}
-              <div className="min-w-0 flex-1 space-y-1">
-                <label htmlFor={`${formId}-input`} className="sr-only">
-                  Skriv ett meddelande
-                </label>
-                <Input
-                  id={`${formId}-input`}
-                  ref={inputRef}
-                  placeholder={
-                    editingImage
-                      ? "Beskriv vad du vill ändra…"
-                      : "Skriv vad du vill måla…"
-                  }
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  autoComplete="off"
-                  className="h-11 rounded-xl border-border/80 bg-background/80 text-base"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                type="button"
-                variant={isVoiceEnabled ? "default" : "secondary"}
-                size="icon"
-                className="h-11 w-11 shrink-0 rounded-xl"
-                onClick={onVoiceToggle}
-                aria-label={
-                  isVoiceEnabled
-                    ? "Stäng av uppläsning"
-                    : "Slå på uppläsning"
-                }
-                title={
-                  isVoiceEnabled
-                    ? "Stäng av uppläsning"
-                    : "Slå på uppläsning"
-                }
-              >
-                {isVoiceEnabled ? (
-                  <Volume2 className="size-5" />
-                ) : (
-                  <VolumeX className="size-5" />
-                )}
-              </Button>
-              {streaming && onStopGeneration ? (
+                {streaming && onStopGeneration ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 shrink-0 rounded-xl px-3 text-xs"
+                    onClick={() => void onStopGeneration()}
+                  >
+                    Stopp
+                  </Button>
+                ) : null}
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="h-11 shrink-0 rounded-xl px-5"
-                  onClick={() => void onStopGeneration()}
+                  type="submit"
+                  size="sm"
+                  className="h-10 shrink-0 rounded-xl px-5 text-sm font-semibold"
+                  disabled={disableSend || !draft.trim()}
                 >
-                  Stoppa
+                  Skicka
                 </Button>
-              ) : null}
-              <Button
-                type="submit"
-                size="lg"
-                className="h-11 shrink-0 rounded-xl px-6"
-                disabled={disableSend || !draft.trim()}
-              >
-                Skicka
-              </Button>
+              </form>
             </div>
-          </form>
-          <p className="text-xs text-muted-foreground">
-            Allt här är gjort för barn — vuxna kan alltid hjälpa till vid
-            sidan av.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+
+            <p className="mt-2 text-center text-[10px] text-white/50 drop-shadow-sm">
+              Gjort för barn — vuxna kan alltid hjälpa till.
+            </p>
+          </div>
+        </div>
+
+        {/* ===== RIGHT: Image preview panel (desktop only) ===== */}
+        <div className="hidden lg:flex flex-1 items-center justify-center p-6 xl:p-10">
+          {latestImage?.imageSrc ? (
+            <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
+              <button
+                type="button"
+                className="group relative w-full cursor-zoom-in overflow-hidden rounded-3xl border-4 border-white/30 bg-white/90 shadow-2xl backdrop-blur-sm transition-all duration-500 hover:shadow-3xl hover:border-white/50"
+                onClick={() => setLightboxOpen(true)}
+                aria-label="Öppna bild i fullstorlek"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={latestImage.imageSrc}
+                  alt={latestImage.imageAlt ?? "Senaste målarbilden"}
+                  className="aspect-square w-full object-contain p-4 transition-transform duration-700 group-hover:scale-[1.02]"
+                />
+              </button>
+
+              {/* Actions under the image */}
+              <div className="flex items-center gap-3">
+                {latestImage.imageId ? (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/70 px-4 py-2 text-sm font-medium text-foreground/80 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg"
+                    onClick={() =>
+                      handleRequestEdit(
+                        latestImage.imageId!,
+                        latestImage.imageSrc!,
+                        latestImage.imageAlt ?? "",
+                      )
+                    }
+                  >
+                    Ändra bilden
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/70 px-4 py-2 text-sm font-medium text-foreground/80 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg"
+                  onClick={() =>
+                    downloadImage(
+                      latestImage.imageSrc!,
+                      `malarbild-${latestImage.imageId ?? "bild"}.png`,
+                    )
+                  }
+                >
+                  <Download className="size-4" />
+                  Ladda ner
+                </button>
+                {latestImage.estimatedCost != null &&
+                latestImage.estimatedCost > 0 ? (
+                  <span
+                    className="rounded-lg bg-white/60 px-2.5 py-1 text-[11px] font-mono text-muted-foreground backdrop-blur-sm"
+                    title={`Modell: ${latestImage.modelUsed ?? "okänd"}`}
+                  >
+                    ${latestImage.estimatedCost.toFixed(3)}
+                  </span>
+                ) : null}
+              </div>
+
+              {latestImage.imageAlt ? (
+                <p className="text-center text-sm text-white/60 drop-shadow-sm">
+                  {latestImage.imageAlt}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 text-center text-white/40">
+              <div className="flex h-48 w-48 items-center justify-center rounded-3xl border-2 border-dashed border-white/20">
+                <span className="text-6xl">🎨</span>
+              </div>
+              <p className="text-sm font-medium drop-shadow-sm">
+                Din målarbild visas här
+              </p>
+              <p className="text-xs text-white/30">
+                Skriv vad du vill måla i chatten
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      {latestImage?.imageSrc ? (
+        <ColoringImageLightbox
+          open={lightboxOpen}
+          onOpenChange={setLightboxOpen}
+          src={latestImage.imageSrc}
+          alt={latestImage.imageAlt ?? "Målarbild"}
+        />
+      ) : null}
+    </>
   );
 }

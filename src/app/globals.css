@@ -167,5 +167,7 @@
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-color: oklch(0.93 0.06 240);
   }
 }
