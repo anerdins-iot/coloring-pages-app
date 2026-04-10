@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Mic, Square, Volume2, VolumeX, X, Download, Pencil } from "lucide-react";
+import { Loader2, Mic, Square, Volume2, VolumeX, X, Download, Pencil, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,7 +16,7 @@ export type ColoringChatProps = {
   messages?: ColoringChatMessage[];
   isVoiceEnabled?: boolean;
   onVoiceToggle?: () => void;
-  onSendMessage?: (text: string) => void | Promise<void>;
+  onSendMessage?: (text: string, files?: FileList) => void | Promise<void>;
   voiceInputEnabled?: boolean;
   disableSend?: boolean;
   chatStatus?: ChatStatus;
@@ -97,6 +97,7 @@ export function ColoringChat({
   const formId = useId();
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
 
@@ -110,6 +111,7 @@ export function ColoringChat({
   const messages = isControlledList ? controlledMessages : internalMessages;
 
   const [draft, setDraft] = useState("");
+  const [attachedFiles, setAttachedFiles] = useState<FileList | null>(null);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [editingImage, setEditingImage] = useState<{
@@ -134,26 +136,60 @@ export function ColoringChat({
     });
   }, [messages]);
 
+  const previewUrl =
+    attachedFiles && attachedFiles.length > 0
+      ? URL.createObjectURL(attachedFiles[0])
+      : null;
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          setAttachedFiles(dt.files);
+        }
+        break;
+      }
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = draft.trim();
-    if (!trimmed || disableSend) return;
+    if ((!trimmed && !attachedFiles) || disableSend) return;
 
     const messageText = editingImage
-      ? `[Redigera bild ${editingImage.imageId}] ${trimmed}`
-      : trimmed;
+      ? `[Redigera bild ${editingImage.imageId}] ${trimmed || "Gör en målarbild av detta"}`
+      : (trimmed || "Gör en målarbild av detta");
 
     if (!isControlledList) {
       const userMsg: ColoringChatMessage = {
         id: makeId(),
         role: "user",
-        content: trimmed,
+        content: trimmed || "Gör en målarbild av detta",
       };
       setInternalMessages((prev) => [...prev, userMsg]);
     }
     setDraft("");
     setEditingImage(null);
-    await onSendMessage?.(messageText);
+    if (attachedFiles) {
+      setAttachedFiles(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      await onSendMessage?.(messageText, attachedFiles);
+    } else {
+      await onSendMessage?.(messageText);
+    }
   }
 
   async function startRecording() {
@@ -277,6 +313,41 @@ export function ColoringChat({
           </div>
         </ScrollArea>
 
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => setAttachedFiles(e.target.files)}
+        />
+
+        {/* Attached image preview */}
+        {previewUrl ? (
+          <div className="mx-4 mb-2 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50/50 px-3 py-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt="Bifogad bild"
+              className="h-12 w-12 rounded-lg object-cover shrink-0"
+            />
+            <span className="flex-1 text-xs text-muted-foreground">
+              Bild bifogad — skriv vad du vill göra med den
+            </span>
+            <button
+              type="button"
+              className="shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setAttachedFiles(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              aria-label="Ta bort bifogad bild"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        ) : null}
+
         {/* Editing indicator */}
         {editingImage ? (
           <div className="mx-4 mb-2 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
@@ -308,6 +379,16 @@ export function ColoringChat({
           className="flex items-center gap-2 border-t border-border/30 bg-white/50 px-4 py-3 dark:bg-black/30"
           onSubmit={handleSubmit}
         >
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0 rounded-xl"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Bifoga bild"
+          >
+            <ImagePlus className="size-4" />
+          </Button>
           {voiceInputEnabled ? (
             <Button
               type="button"
@@ -342,10 +423,13 @@ export function ColoringChat({
               placeholder={
                 editingImage
                   ? "Beskriv vad du vill ändra…"
-                  : "Skriv vad du vill måla…"
+                  : attachedFiles
+                    ? "Skriv vad du vill göra med bilden…"
+                    : "Skriv vad du vill måla…"
               }
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onPaste={handlePaste}
               autoComplete="off"
               className="h-10 rounded-xl border-border/50 bg-white/70 text-sm font-medium dark:bg-white/10"
             />
@@ -379,7 +463,7 @@ export function ColoringChat({
             type="submit"
             size="sm"
             className="h-10 shrink-0 rounded-xl px-6 font-bold"
-            disabled={disableSend || !draft.trim()}
+            disabled={disableSend || (!draft.trim() && !attachedFiles)}
           >
             Skicka
           </Button>

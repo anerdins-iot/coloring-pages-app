@@ -32,6 +32,21 @@ function stripImagesFromModelMessages(
   const cloned = JSON.parse(JSON.stringify(messages)) as ModelMessage[];
 
   for (const msg of cloned) {
+    if (msg.role === "user") {
+      // Strip large image parts from user messages (uploaded images from history)
+      if (Array.isArray(msg.content)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (msg as any).content = (msg.content as Array<unknown>).filter((part: unknown) => {
+          const p = part as { type?: string; image?: unknown };
+          if (p.type === "image") {
+            const imgData = p.image;
+            if (typeof imgData === "string" && imgData.length > 1000) return false;
+          }
+          return true;
+        });
+      }
+      continue;
+    }
     if (msg.role !== "tool") continue;
     for (const part of msg.content) {
       if (part.type !== "tool-result") continue;
