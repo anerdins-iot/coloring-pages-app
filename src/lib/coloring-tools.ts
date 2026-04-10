@@ -121,9 +121,13 @@ export const generateColoringPage = tool({
     const modelId = currentImageModel;
     const model = google(modelId);
     const modelConfig = getModelConfig(modelId);
+    const aspectRatio = orientation === "landscape" ? "4:3" : "3:4";
     const providerOptions = {
       google: {
         responseModalities: ["TEXT", "IMAGE"],
+        imageConfig: {
+          aspectRatio,
+        },
       },
     };
 
