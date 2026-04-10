@@ -33,14 +33,23 @@ export function ColoringImageLightbox({
           <DialogDescription>{alt}</DialogDescription>
         </DialogHeader>
         <div className="relative aspect-square w-full max-h-[min(75vh,680px)] overflow-hidden rounded-lg bg-muted">
-          <Image
-            src={src}
-            alt={alt}
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 96vw, 720px"
-            priority={open}
-          />
+          {src.startsWith("data:") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt={alt}
+              className="h-full max-h-[min(75vh,680px)] w-full object-contain"
+            />
+          ) : (
+            <Image
+              src={src}
+              alt={alt}
+              fill
+              className="object-contain"
+              sizes="(max-width: 768px) 96vw, 720px"
+              priority={open}
+            />
+          )}
         </div>
         <p className="text-center text-xs text-muted-foreground">
           Tips: tryck utanför bilden eller på Stäng för att gå tillbaka till chatten.
