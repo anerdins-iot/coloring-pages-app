@@ -22,6 +22,16 @@ export function createStrippedTransport(options: {
       parts: m.parts.map((p) => {
         if (typeof p !== "object" || !("type" in p)) return p;
         const pType = (p as { type: string }).type;
+
+        // Strip large file parts (uploaded images as data-URLs)
+        if (pType === "file") {
+          const filePart = p as { type: string; url?: string; mediaType?: string };
+          if (filePart.url && filePart.url.length > 1000) {
+            return { ...p, url: "[stripped]" };
+          }
+          return p;
+        }
+
         if (!pType.startsWith("tool-")) return p;
         const inv = p as {
           state?: string;
