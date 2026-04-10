@@ -1,0 +1,47 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - heading "Måla med magi" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Prata eller skriv, få trygga förslag och målarbilder du kan spara hemma.
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Chatt
+        - generic [ref=e10]:
+          - paragraph [ref=e11]: Röstläge
+          - paragraph [ref=e12]: Välj hur assistenten låter när du pratar med den. Du kan byta när du vill.
+          - group "Röstläge" [ref=e13]:
+            - button "Blå röst Lugn och tydlig — bra när man vill ha långsamma, tydliga ord. Uppläsning påslagen." [pressed] [ref=e14]:
+              - generic [ref=e15]: Blå röst
+              - generic [ref=e16]: Lugn och tydlig — bra när man vill ha långsamma, tydliga ord. Uppläsning påslagen.
+            - button "Grön röst Glad och peppig — lite mer energi och lek i tonen. Uppläsning påslagen." [ref=e17]:
+              - generic [ref=e18]: Grön röst
+              - generic [ref=e19]: Glad och peppig — lite mer energi och lek i tonen. Uppläsning påslagen.
+            - button "Orange röst Sprallig och rolig — samma vänliga svar i chatten, men utan uppläsning (du läser själv)." [ref=e20]:
+              - generic [ref=e21]: Orange röst
+              - generic [ref=e22]: Sprallig och rolig — samma vänliga svar i chatten, men utan uppläsning (du läser själv).
+      - generic [ref=e23]:
+        - paragraph [ref=e30]: Hej! Skriv eller använd mikrofonen och säg vad du vill måla. Jag svarar på svenska och hjälper bara med trygga målarbilder.
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - button "Spela in med mikrofon" [ref=e33]:
+              - img
+            - generic [ref=e34]:
+              - generic [ref=e35]: Skriv ett meddelande
+              - textbox "Skriv ett meddelande" [ref=e36]:
+                - /placeholder: Skriv vad du vill måla…
+          - button "Skicka" [disabled]
+        - paragraph [ref=e37]: Allt här är gjort för barn — vuxna kan alltid hjälpa till vid sidan av.
+  - generic [ref=e42] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e43]:
+      - img [ref=e44]
+    - generic [ref=e47]:
+      - button "Open issues overlay" [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]: "1"
+          - generic [ref=e51]: "2"
+        - generic [ref=e52]:
+          - text: Issue
+          - generic [ref=e53]: s
+      - button "Collapse issues badge" [ref=e54]:
+        - img [ref=e55]
+  - alert [ref=e57]
