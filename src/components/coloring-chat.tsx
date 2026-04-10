@@ -225,9 +225,9 @@ export function ColoringChat({
         </p>
       </header>
 
-      <Card className="border-border/80 bg-card/95 shadow-md backdrop-blur-md supports-backdrop-filter:bg-card/90">
+      <Card className="border-border/80 bg-card/95 shadow-xl backdrop-blur-md supports-backdrop-filter:bg-card/90 ring-1 ring-white/20 dark:ring-white/10">
         <CardHeader className="gap-2 pb-2">
-          <CardTitle className="text-lg font-semibold">Chatt</CardTitle>
+          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Magisk Chatt</CardTitle>
           <VoiceModePicker value={voiceMode} onChange={handleVoiceChange} />
         </CardHeader>
         <CardContent className="flex flex-col gap-3 pt-0">
@@ -238,8 +238,8 @@ export function ColoringChat({
             </p>
           ) : null}
 
-          <ScrollArea className="h-[min(52vh,420px)] rounded-xl border border-border/60 bg-muted/30 pr-2">
-            <div className="flex flex-col gap-3 p-3 sm:p-4">
+          <ScrollArea className="h-[min(52vh,420px)] rounded-xl border border-border/60 bg-muted/30 pr-2 shadow-inner">
+            <div className="flex flex-col gap-4 p-4 sm:p-5">
               {messages.map((m) => (
                 <ChatMessageBubble key={m.id} message={m} />
               ))}
