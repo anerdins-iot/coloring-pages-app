@@ -4,15 +4,17 @@ import Image from "next/image";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ColoringChatMessage } from "@/types/coloring-chat";
 import { ColoringImageLightbox } from "@/components/coloring-image-lightbox";
 
 type ChatMessageBubbleProps = {
   message: ColoringChatMessage;
+  onRequestEdit?: (imageSrc: string, imageAlt: string) => void;
 };
 
-export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
+export function ChatMessageBubble({ message, onRequestEdit }: ChatMessageBubbleProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isUser = message.role === "user";
 
@@ -38,36 +40,53 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
             </ReactMarkdown>
           </div>
           {message.imageSrc ? (
-            <button
-              type="button"
-              className="group relative mt-4 w-full max-w-xs cursor-zoom-in overflow-hidden rounded-xl border-4 border-white/20 bg-background/60 shadow-lg text-left transition-all hover:scale-[1.02] hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50"
-              onClick={() => setLightboxOpen(true)}
-              aria-label="Öppna större bild av målarbilden"
-            >
-              <span className="relative block aspect-square w-full max-w-[240px]">
-                {message.imageSrc.startsWith("data:") ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- data-URL från Imagen finns inte som statisk fil
-                  <img
-                    src={message.imageSrc}
-                    alt={message.imageAlt ?? "Genererad målarbild"}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    width={240}
-                    height={240}
-                  />
-                ) : (
-                  <Image
-                    src={message.imageSrc}
-                    alt={message.imageAlt ?? "Genererad målarbild"}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-105"
-                    sizes="240px"
-                  />
-                )}
-              </span>
-              <span className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                Tryck för stor bild
-              </span>
-            </button>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                className="group relative w-full max-w-xs cursor-zoom-in overflow-hidden rounded-xl border-4 border-white/20 bg-background/60 shadow-lg text-left transition-all hover:scale-[1.02] hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50"
+                onClick={() => setLightboxOpen(true)}
+                aria-label="Öppna större bild av målarbilden"
+              >
+                <span className="relative block aspect-square w-full max-w-[240px]">
+                  {message.imageSrc.startsWith("data:") ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- data-URL finns inte som statisk fil
+                    <img
+                      src={message.imageSrc}
+                      alt={message.imageAlt ?? "Genererad målarbild"}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      width={240}
+                      height={240}
+                    />
+                  ) : (
+                    <Image
+                      src={message.imageSrc}
+                      alt={message.imageAlt ?? "Genererad målarbild"}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                      sizes="240px"
+                    />
+                  )}
+                </span>
+                <span className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  Tryck för stor bild
+                </span>
+              </button>
+              {onRequestEdit ? (
+                <button
+                  type="button"
+                  className="flex w-full max-w-xs items-center gap-2 rounded-2xl border-2 border-primary/20 bg-white/80 px-4 py-2 text-sm font-medium shadow-md transition-all hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  onClick={() =>
+                    onRequestEdit(
+                      message.imageSrc!,
+                      message.imageAlt ?? "Genererad målarbild",
+                    )
+                  }
+                >
+                  <Pencil className="size-4 shrink-0 text-primary" />
+                  Ändra bilden
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>

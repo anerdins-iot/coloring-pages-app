@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Mic, Square, Volume2, VolumeX } from "lucide-react";
+import { Loader2, Mic, Square, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,7 @@ export function ColoringChat({
 }: ColoringChatProps) {
   const formId = useId();
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
 
@@ -96,6 +97,15 @@ export function ColoringChat({
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [editingImage, setEditingImage] = useState<{
+    imageSrc: string;
+    imageAlt: string;
+  } | null>(null);
+
+  function handleRequestEdit(imageSrc: string, imageAlt: string) {
+    setEditingImage({ imageSrc, imageAlt });
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({
@@ -109,6 +119,10 @@ export function ColoringChat({
     const trimmed = draft.trim();
     if (!trimmed || disableSend) return;
 
+    const messageText = editingImage
+      ? `[Redigera bild] ${trimmed}`
+      : trimmed;
+
     if (!isControlledList) {
       const userMsg: ColoringChatMessage = {
         id: makeId(),
@@ -118,7 +132,8 @@ export function ColoringChat({
       setInternalMessages((prev) => [...prev, userMsg]);
     }
     setDraft("");
-    await onSendMessage?.(trimmed);
+    setEditingImage(null);
+    await onSendMessage?.(messageText);
   }
 
   async function startRecording() {
@@ -218,11 +233,39 @@ export function ColoringChat({
           <ScrollArea className="h-[min(52vh,420px)] rounded-xl border border-border/60 bg-muted/30 pr-2 shadow-inner">
             <div className="flex flex-col gap-4 p-4 sm:p-5">
               {messages.map((m) => (
-                <ChatMessageBubble key={m.id} message={m} />
+                <ChatMessageBubble
+                  key={m.id}
+                  message={m}
+                  onRequestEdit={m.imageSrc ? handleRequestEdit : undefined}
+                />
               ))}
               <div ref={scrollAnchorRef} aria-hidden />
             </div>
           </ScrollArea>
+
+          {editingImage ? (
+            <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+              {/* eslint-disable-next-line @next/next/no-img-element -- data-URL */}
+              <img
+                src={editingImage.imageSrc}
+                alt={editingImage.imageAlt}
+                className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                width={48}
+                height={48}
+              />
+              <span className="flex-1 text-xs font-medium text-muted-foreground">
+                Redigerar bild — beskriv vad du vill ändra
+              </span>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                onClick={() => setEditingImage(null)}
+                aria-label="Avbryt redigering"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : null}
 
           <form
             id={formId}
@@ -262,7 +305,12 @@ export function ColoringChat({
                 </label>
                 <Input
                   id={`${formId}-input`}
-                  placeholder="Skriv vad du vill måla…"
+                  ref={inputRef}
+                  placeholder={
+                    editingImage
+                      ? "Beskriv vad du vill ändra…"
+                      : "Skriv vad du vill måla…"
+                  }
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   autoComplete="off"
