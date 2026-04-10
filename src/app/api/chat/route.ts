@@ -83,6 +83,12 @@ export async function POST(req: Request) {
     // Strip all image data AFTER conversion to model messages
     const cleanMessages = stripImagesFromModelMessages(modelMessages);
 
+    // Log message sizes for debugging token issues
+    const msgJson = JSON.stringify(cleanMessages);
+    console.info(
+      `[api/chat] messages: ${cleanMessages.length}, payload: ${(msgJson.length / 1024).toFixed(0)}KB, ~${(msgJson.length / 4 / 1000).toFixed(0)}K tokens`,
+    );
+
     const result = streamText({
       model: chatModel,
       system: COLORING_SYSTEM_PROMPT,

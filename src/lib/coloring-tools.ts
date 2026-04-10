@@ -43,6 +43,33 @@ export const generateColoringPage = tool({
         "Kort engelsk beskrivning av ändringen. Krävs tillsammans med referenceImageId.",
       ),
   }),
+  // Convert tool output to model-friendly format WITHOUT image data.
+  // Only send small metadata to the model. The full imageSrc data-URL
+  // is kept in the raw output for the client UI.
+  toModelOutput({
+    output,
+  }: {
+    toolCallId: string;
+    input: unknown;
+    output: {
+      imageId: string;
+      imageSrc: string;
+      imageAlt: string;
+      modelUsed: string;
+      estimatedCost: number;
+    };
+  }) {
+    return {
+      type: "text" as const,
+      value: JSON.stringify({
+        imageId: output.imageId,
+        imageAlt: output.imageAlt,
+        modelUsed: output.modelUsed,
+        estimatedCost: output.estimatedCost,
+        status: "image_generated",
+      }),
+    };
+  },
   execute: async ({
     englishImagePrompt,
     swedishAltText,
