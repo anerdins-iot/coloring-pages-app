@@ -77,24 +77,16 @@ export function ChatMessageBubble({
                   <img
                     src={message.imageSrc}
                     alt={message.imageAlt ?? "Genererad målarbild"}
-                    className={cn(
-                      "block w-full object-contain",
-                      compact ? "max-w-sm" : "max-w-md",
-                    )}
+                    className="block w-full max-w-lg object-contain"
                   />
                 ) : (
-                  <span
-                    className={cn(
-                      "relative block aspect-square",
-                      compact ? "w-64" : "w-80",
-                    )}
-                  >
+                  <span className="relative block aspect-[3/4] w-full max-w-lg">
                     <Image
                       src={message.imageSrc}
                       alt={message.imageAlt ?? "Genererad målarbild"}
                       fill
                       className="object-contain"
-                      sizes={compact ? "256px" : "320px"}
+                      sizes="(max-width: 768px) 100vw, 512px"
                     />
                   </span>
                 )}

@@ -1,6 +1,11 @@
 import type { UIMessage } from "ai";
 import type { ColoringChatMessage } from "@/types/coloring-chat";
 
+/** Strip internal "[Redigera bild img-X] " prefix from user messages */
+function cleanText(text: string): string {
+  return text.replace(/^\[Redigera bild [^\]]*\]\s*/i, "");
+}
+
 function partsText(parts: UIMessage["parts"]): string {
   return parts
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
@@ -54,7 +59,7 @@ export function mapUiMessagesToColoringMessages(
       out.push({
         id: m.id,
         role: "user",
-        content: partsText(m.parts),
+        content: cleanText(partsText(m.parts)),
       });
       continue;
     }

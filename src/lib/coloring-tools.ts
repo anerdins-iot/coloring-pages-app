@@ -20,12 +20,12 @@ export function setImageModel(modelId: string) {
 
 export const generateColoringPage = tool({
   description:
-    "Genererar eller redigerar en barnvänlig målarbild (svartvit linjeteckning) när användarens önskemål är tillåtet.",
+    "Genererar eller redigerar en målarbild (svartvit linjeteckning).",
   inputSchema: z.object({
     englishImagePrompt: z
       .string()
       .describe(
-        "Kort engelsk prompt för bilden: bara konturer, tjocka linjer, enkla former, ingen text, ingen skuggning.",
+        "Engelsk prompt för bilden. Anpassa detaljeringsgrad efter användarens önskemål.",
       ),
     swedishAltText: z
       .string()
@@ -34,55 +34,15 @@ export const generateColoringPage = tool({
       .string()
       .optional()
       .describe(
-        "ID för en tidigare genererad bild att redigera (t.ex. 'img-1'). Hämta från imageId i ett tidigare tool-resultat. Skicka BARA vid redigering.",
+        "ID för en tidigare genererad bild att redigera (t.ex. 'img-1'). Skicka BARA vid redigering.",
       ),
     editInstruction: z
       .string()
       .optional()
       .describe(
-        "Kort engelsk beskrivning av vad som ska ändras, t.ex. 'make the lines thicker' eller 'add a crown'. Krävs tillsammans med referenceImageId.",
+        "Kort engelsk beskrivning av ändringen. Krävs tillsammans med referenceImageId.",
       ),
   }),
-  // Let the chat model SEE the generated image so it can comment on it
-  toModelOutput({
-    output,
-  }: {
-    toolCallId: string;
-    input: unknown;
-    output: {
-      imageId: string;
-      imageSrc: string;
-      imageAlt: string;
-      modelUsed: string;
-      estimatedCost: number;
-    };
-  }) {
-    const base64 = output.imageSrc.includes(",")
-      ? output.imageSrc.split(",")[1]
-      : output.imageSrc;
-    const mediaType = output.imageSrc.startsWith("data:")
-      ? output.imageSrc.slice(5, output.imageSrc.indexOf(";"))
-      : "image/png";
-    return {
-      type: "content" as const,
-      value: [
-        {
-          type: "text" as const,
-          text: JSON.stringify({
-            imageId: output.imageId,
-            imageAlt: output.imageAlt,
-            modelUsed: output.modelUsed,
-            estimatedCost: output.estimatedCost,
-          }),
-        },
-        {
-          type: "image-data" as const,
-          data: base64,
-          mediaType,
-        },
-      ],
-    };
-  },
   execute: async ({
     englishImagePrompt,
     swedishAltText,
@@ -90,7 +50,7 @@ export const generateColoringPage = tool({
     editInstruction,
   }) => {
     const safePrompt =
-      "Black and white line art coloring page, " +
+      "Black and white line art coloring page in portrait orientation (3:4 aspect ratio like A4 paper), " +
       "clean outlines, no shading, no grayscale, no filled areas, " +
       "no text, no letters, no color, no photorealism: " +
       englishImagePrompt;

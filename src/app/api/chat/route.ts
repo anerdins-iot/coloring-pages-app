@@ -52,13 +52,11 @@ function stripImageDataFromHistory(messages: UIMessage[]): UIMessage[] {
         };
       };
       if (inv.state === "output-available" && inv.output?.imageSrc) {
+        // Remove imageSrc entirely — keep only metadata
+        const { imageSrc: _stripped, ...restOutput } = inv.output;
         return {
           ...inv,
-          output: {
-            imageId: inv.output.imageId,
-            imageAlt: inv.output.imageAlt,
-            imageSrc: "[bilddata hämtas via imageId från server]",
-          },
+          output: restOutput,
         };
       }
       return p;
