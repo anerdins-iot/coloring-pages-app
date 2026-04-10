@@ -2,7 +2,12 @@ import {
   google,
   type GoogleGenerativeAIProviderMetadata,
 } from "@ai-sdk/google";
-import { convertToModelMessages, streamText, stepCountIs } from "ai";
+import {
+  convertToModelMessages,
+  streamText,
+  stepCountIs,
+  type UIMessage,
+} from "ai";
 import { COLORING_SYSTEM_PROMPT } from "@/lib/coloring-system-prompt";
 import { generateColoringPage, coloringToolSet } from "@/lib/coloring-tools";
 
@@ -11,55 +16,52 @@ export const dynamic = "force-dynamic";
 const model = google("gemini-3.1-flash-lite-preview");
 
 /**
- * Keep only the last 2 generated images at full base64 size in the message
- * history. Older images are stripped to avoid hitting token limits.
+ * Strips base64 image data (imageSrc) from ALL tool results in chat history.
+ * Keeps imageId, imageAlt and other metadata intact so the AI agent can
+ * reference images by ID without the actual pixel data bloating the context.
+ * The actual base64 lives in the server-side image-store keyed by imageId.
  */
-function limitImageHistory(messages: unknown[]): unknown[] {
-  type Part = {
-    type?: string;
-    state?: string;
-    output?: Record<string, unknown>;
-  };
-  type Msg = { role?: string; parts?: Part[] };
+function stripImageDataFromHistory(messages: UIMessage[]): UIMessage[] {
+  return messages.map((m) => {
+    if (m.role !== "assistant") return m;
 
-  const imagePartRefs: Array<{ msgIdx: number; partIdx: number }> = [];
+    const hasToolImage = m.parts.some((p) => {
+      if (typeof p !== "object" || !("type" in p)) return false;
+      const pType = (p as { type: string }).type;
+      if (!pType.startsWith("tool-")) return false;
+      const inv = p as { state?: string; output?: { imageSrc?: string } };
+      return inv.state === "output-available" && inv.output?.imageSrc;
+    });
+    if (!hasToolImage) return m;
 
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i] as Msg;
-    if (!msg.parts) continue;
-    for (let j = 0; j < msg.parts.length; j++) {
-      const part = msg.parts[j];
-      if (
-        typeof part.type === "string" &&
-        part.type.startsWith("tool-") &&
-        part.state === "output-available" &&
-        part.output &&
-        typeof part.output.imageSrc === "string" &&
-        part.output.imageSrc.startsWith("data:image")
-      ) {
-        imagePartRefs.push({ msgIdx: i, partIdx: j });
-      }
-    }
-  }
-
-  // If 2 or fewer images, no trimming needed
-  if (imagePartRefs.length <= 2) return messages;
-
-  const toStrip = imagePartRefs.slice(0, -2);
-  const cloned = structuredClone(messages) as Msg[];
-
-  for (const { msgIdx, partIdx } of toStrip) {
-    const part = cloned[msgIdx].parts?.[partIdx];
-    if (part?.output) {
-      // Keep imageAlt for context but strip the large base64 payload
-      part.output = {
-        imageSrc: "data:image/png;base64,[stripped]",
-        imageAlt: part.output.imageAlt,
+    const strippedParts = m.parts.map((p) => {
+      if (typeof p !== "object" || !("type" in p)) return p;
+      const pType = (p as { type: string }).type;
+      if (!pType.startsWith("tool-")) return p;
+      const inv = p as {
+        type: string;
+        state?: string;
+        output?: {
+          imageSrc?: string;
+          imageAlt?: string;
+          imageId?: string;
+        };
       };
-    }
-  }
+      if (inv.state === "output-available" && inv.output?.imageSrc) {
+        return {
+          ...inv,
+          output: {
+            imageId: inv.output.imageId,
+            imageAlt: inv.output.imageAlt,
+            imageSrc: "[bilddata hämtas via imageId från server]",
+          },
+        };
+      }
+      return p;
+    });
 
-  return cloned;
+    return { ...m, parts: strippedParts } as UIMessage;
+  });
 }
 
 export async function POST(req: Request) {
@@ -93,11 +95,9 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Trim base64 from old image results to stay within token limits
-    const trimmedMessages = limitImageHistory(messages);
-
+    const cleanMessages = stripImageDataFromHistory(messages as UIMessage[]);
     const modelMessages = await convertToModelMessages(
-      trimmedMessages as Parameters<typeof convertToModelMessages>[0],
+      cleanMessages as Parameters<typeof convertToModelMessages>[0],
       { tools: coloringToolSet },
     );
 

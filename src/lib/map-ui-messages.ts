@@ -9,6 +9,7 @@ function partsText(parts: UIMessage["parts"]): string {
 }
 
 function toolImageFromParts(parts: UIMessage["parts"]): {
+  imageId?: string;
   imageSrc: string;
   imageAlt: string;
 } | null {
@@ -17,10 +18,11 @@ function toolImageFromParts(parts: UIMessage["parts"]): {
     const inv = p as {
       type: string;
       state: string;
-      output?: { imageSrc: string; imageAlt: string };
+      output?: { imageId?: string; imageSrc: string; imageAlt: string };
     };
     if (inv.state === "output-available" && inv.output?.imageSrc) {
       return {
+        imageId: inv.output.imageId,
         imageSrc: inv.output.imageSrc,
         imageAlt: inv.output.imageAlt,
       };
@@ -54,6 +56,7 @@ export function mapUiMessagesToColoringMessages(
         id: m.id,
         role: "assistant",
         content: content || (toolImage ? "Här är en målarbild du kan använda!" : ""),
+        imageId: toolImage?.imageId,
         imageSrc: toolImage?.imageSrc,
         imageAlt: toolImage?.imageAlt,
       });

@@ -98,12 +98,13 @@ export function ColoringChat({
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [editingImage, setEditingImage] = useState<{
+    imageId: string;
     imageSrc: string;
     imageAlt: string;
   } | null>(null);
 
-  function handleRequestEdit(imageSrc: string, imageAlt: string) {
-    setEditingImage({ imageSrc, imageAlt });
+  function handleRequestEdit(imageId: string, imageSrc: string, imageAlt: string) {
+    setEditingImage({ imageId, imageSrc, imageAlt });
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
@@ -120,7 +121,7 @@ export function ColoringChat({
     if (!trimmed || disableSend) return;
 
     const messageText = editingImage
-      ? `[Redigera bild] ${trimmed}`
+      ? `[Redigera bild ${editingImage.imageId}] ${trimmed}`
       : trimmed;
 
     if (!isControlledList) {
@@ -236,7 +237,7 @@ export function ColoringChat({
                 <ChatMessageBubble
                   key={m.id}
                   message={m}
-                  onRequestEdit={m.imageSrc ? handleRequestEdit : undefined}
+                  onRequestEdit={m.imageId ? handleRequestEdit : undefined}
                 />
               ))}
               <div ref={scrollAnchorRef} aria-hidden />

@@ -11,7 +11,7 @@ import { ColoringImageLightbox } from "@/components/coloring-image-lightbox";
 
 type ChatMessageBubbleProps = {
   message: ColoringChatMessage;
-  onRequestEdit?: (imageSrc: string, imageAlt: string) => void;
+  onRequestEdit?: (imageId: string, imageSrc: string, imageAlt: string) => void;
 };
 
 export function ChatMessageBubble({ message, onRequestEdit }: ChatMessageBubbleProps) {
@@ -77,6 +77,7 @@ export function ChatMessageBubble({ message, onRequestEdit }: ChatMessageBubbleP
                   className="flex w-full max-w-xs items-center gap-2 rounded-2xl border-2 border-primary/20 bg-white/80 px-4 py-2 text-sm font-medium shadow-md transition-all hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   onClick={() =>
                     onRequestEdit(
+                      message.imageId ?? "",
                       message.imageSrc!,
                       message.imageAlt ?? "Genererad målarbild",
                     )

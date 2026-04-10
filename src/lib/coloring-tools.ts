@@ -1,6 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { generateText, tool } from "ai";
 import { z } from "zod";
+import { saveImage, getImage } from "@/lib/image-store";
 
 export const generateColoringPage = tool({
   description:
@@ -14,23 +15,49 @@ export const generateColoringPage = tool({
     swedishAltText: z
       .string()
       .describe("Kort svensk alt-text till bilden för skärmläsare."),
-    referenceImageBase64: z
+    referenceImageId: z
       .string()
       .optional()
       .describe(
-        "Base64-data (eller data URL) för en tidigare genererad bild som ska redigeras. Hämta värdet från imageSrc i det senaste tool-resultatet.",
+        "ID för en tidigare genererad bild att redigera (t.ex. 'img-1'). Hämta från imageId i ett tidigare tool-resultat. Skicka BARA vid redigering.",
       ),
     editInstruction: z
       .string()
       .optional()
       .describe(
-        "Kort engelsk beskrivning av vad som ska ändras i referensbilden, t.ex. 'make the lines thicker' eller 'add a crown'.",
+        "Kort engelsk beskrivning av vad som ska ändras, t.ex. 'make the lines thicker' eller 'add a crown'. Krävs tillsammans med referenceImageId.",
       ),
   }),
+  // Let the chat model SEE the generated image so it can comment on it
+  toModelOutput({ output }: { toolCallId: string; input: unknown; output: { imageId: string; imageSrc: string; imageAlt: string } }) {
+    const base64 = output.imageSrc.includes(",")
+      ? output.imageSrc.split(",")[1]
+      : output.imageSrc;
+    const mediaType = output.imageSrc.startsWith("data:")
+      ? output.imageSrc.slice(5, output.imageSrc.indexOf(";"))
+      : "image/png";
+    return {
+      type: "content" as const,
+      value: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({
+            imageId: output.imageId,
+            imageAlt: output.imageAlt,
+          }),
+        },
+        {
+          type: "image-data" as const,
+          data: base64,
+          mediaType,
+        },
+      ],
+    };
+  },
   execute: async ({
     englishImagePrompt,
     swedishAltText,
-    referenceImageBase64,
+    referenceImageId,
     editInstruction,
   }) => {
     const safePrompt =
@@ -49,11 +76,13 @@ export const generateColoringPage = tool({
     try {
       let result;
 
-      if (referenceImageBase64) {
-        // Strip data URL prefix if present (e.g. "data:image/png;base64,")
-        const base64Data = referenceImageBase64.includes(",")
-          ? referenceImageBase64.split(",")[1]
-          : referenceImageBase64;
+      if (referenceImageId) {
+        const storedImage = getImage(referenceImageId);
+        if (!storedImage) {
+          throw new Error(
+            `Bilden "${referenceImageId}" hittades inte. Den kan ha rensats. Be användaren generera en ny bild.`,
+          );
+        }
 
         const instruction = editInstruction
           ? `${editInstruction}. Maintain the black and white line art coloring page style.`
@@ -69,7 +98,7 @@ export const generateColoringPage = tool({
                 { type: "text", text: instruction + " " + safePrompt },
                 {
                   type: "image",
-                  image: Buffer.from(base64Data, "base64"),
+                  image: Buffer.from(storedImage.base64, "base64"),
                 },
               ],
             },
@@ -91,8 +120,22 @@ export const generateColoringPage = tool({
         throw new Error("Modellen returnerade ingen bild.");
       }
 
+      const base64 = imageFile.base64;
+      if (!base64) {
+        throw new Error("Modellen returnerade en bild utan data.");
+      }
+
+      // Spara i server-side registret
+      const imageId = saveImage(
+        base64,
+        imageFile.mediaType,
+        swedishAltText,
+        englishImagePrompt,
+      );
+
       return {
-        imageSrc: `data:${imageFile.mediaType};base64,${imageFile.base64}`,
+        imageId,
+        imageSrc: `data:${imageFile.mediaType};base64,${base64}`,
         imageAlt: swedishAltText,
       };
     } catch (err) {
